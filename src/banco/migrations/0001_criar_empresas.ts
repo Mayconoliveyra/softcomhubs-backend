@@ -21,9 +21,17 @@ export async function up(knex: Knex) {
       table.boolean('sinc_estoque').defaultTo(true);
       table.boolean('sinc_fabricante').defaultTo(true);
 
-      table.string('pm4_token', 1000);
-      table.string('pm4_token_renovacao', 1000);
-      table.bigInteger('pm4_token_exp').nullable();
+      table.text('pm4_token');
+      table.text('pm4_token_renovacao');
+      table.bigInteger('pm4_token_exp');
+
+      table.text('sh_qrcode_url');
+      table.string('sh_url', 255);
+      table.string('sh_client_id', 255);
+      table.string('sh_client_secret', 255);
+      table.string('sh_token', 255);
+      table.bigInteger('sh_token_exp');
+      table.bigInteger('sh_ultima_sinc');
 
       table.boolean('ativo').defaultTo(true);
 

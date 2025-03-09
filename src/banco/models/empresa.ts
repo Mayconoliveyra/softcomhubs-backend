@@ -16,6 +16,14 @@ export interface IEmpresa {
   pm4_token_renovacao?: string | null;
   pm4_token_exp?: number | null;
 
+  sh_qrcode_url?: string | null;
+  sh_url?: string | null;
+  sh_client_id?: string | null;
+  sh_client_secret?: string | null;
+  sh_token?: string | null;
+  sh_token_exp?: number | null;
+  sh_ultima_sinc?: number | null;
+
   ativo: boolean;
 
   created_at: string;
