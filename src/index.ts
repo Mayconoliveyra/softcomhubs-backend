@@ -1,4 +1,5 @@
 import { Knex } from './banco/knex';
+import { Tarefas } from './banco/tarefas';
 
 import { Configs } from './configs';
 
@@ -15,6 +16,8 @@ const startServer = () => {
   Configs.ExpressConfig.serverHttps.listen(PORT_HTTPS, () => {
     console.log(`App rodando na porta ${PORT_HTTPS} (https)`);
   });
+
+  Tarefas.SelfHost.consultarProdutos();
 };
 
 Knex.migrate
