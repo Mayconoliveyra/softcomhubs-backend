@@ -276,18 +276,10 @@ const cadastrar = async (req: Request<{}, {}, IBodyProps>, res: Response) => {
       domingo_inicio_2,
       domingo_saida_2,
     };
-    const usuarioId = await Repositorios.Usuario.cadastrar(modelo);
 
-    if (usuarioId) {
-      // Gera os pontos dos próximos 90 dias
-      await Servicos.Ponto.gerarRegistrosPonto(usuarioId);
+    await Repositorios.Usuario.cadastrar(modelo);
 
-      return res.status(StatusCodes.NO_CONTENT).send();
-    } else {
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        errors: { default: 'Erro ao cadastrar usuário' },
-      });
-    }
+    return res.status(StatusCodes.NO_CONTENT).send();
   } catch (error) {
     Util.Log.error('Erro ao cadastrar usuário', error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
