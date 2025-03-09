@@ -13,8 +13,16 @@ export const seed = async (knex: Knex) => {
     .insert([
       {
         id: 1,
-        nome: 'EMPRESA TESTE',
+        uuid: '983fbdb3-17a7-43d5-9287-9cd1a019296f',
+
+        registro: '1',
+        razao: 'EMPRESA TESTE RAZAO',
+        fantasia: 'EMPRESA TESTE FANTASIA',
         cnpj_cpf: '11122233344',
+        sinc_nome: true,
+        sinc_preco: true,
+        sinc_estoque: true,
+        sinc_fabricante: true,
         ativo: true,
       },
     ])
