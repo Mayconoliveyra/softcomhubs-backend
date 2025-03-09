@@ -7,13 +7,12 @@ import { ETableNames } from '../eTableNames';
 export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.empresas, (table) => {
-      table.increments('id').primary();
+      table.uuid('uuid').primary().index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
 
-      table.uuid('uuid').index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
+      table.string('fantasia', 255).notNullable();
+      table.string('razao', 255).notNullable();
 
       table.string('registro', 100).notNullable();
-      table.string('razao', 255).notNullable();
-      table.string('fantasia', 255).notNullable();
       table.string('cnpj_cpf', 14).notNullable().unique();
 
       table.boolean('sinc_nome').defaultTo(true);

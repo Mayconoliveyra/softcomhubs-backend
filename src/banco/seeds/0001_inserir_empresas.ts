@@ -12,7 +12,6 @@ export const seed = async (knex: Knex) => {
   await knex(ETableNames.empresas)
     .insert([
       {
-        id: 1,
         uuid: '983fbdb3-17a7-43d5-9287-9cd1a019296f',
 
         registro: '1',

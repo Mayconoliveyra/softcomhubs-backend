@@ -7,27 +7,13 @@ import { ETableNames } from '../eTableNames';
 export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.usuarios, (table) => {
-      table.increments('id').primary().notNullable();
+      table.uuid('uuid').primary().index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
 
       table.string('nome', 120).notNullable();
       table.string('email', 120).unique().notNullable();
       table.string('senha', 255).notNullable();
-      table.string('contato', 13).nullable();
-      table.date('nascimento').nullable();
-      table.boolean('notificar').defaultTo(true);
       table.boolean('ativo').defaultTo(true);
-      table.boolean('administrador').defaultTo(false);
-
-      table.integer('empresa_id').notNullable().unsigned().references('id').inTable(ETableNames.empresas);
-
-      const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-
-      dias.forEach((dia) => {
-        table.time(`${dia}_inicio_1`).nullable();
-        table.time(`${dia}_saida_1`).nullable();
-        table.time(`${dia}_inicio_2`).nullable();
-        table.time(`${dia}_saida_2`).nullable();
-      });
+      table.uuid('empresa_id').notNullable().references('uuid').inTable(ETableNames.empresas);
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));

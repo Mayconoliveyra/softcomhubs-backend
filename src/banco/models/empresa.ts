@@ -1,10 +1,9 @@
 export interface IEmpresa {
-  id: number;
   uuid: string;
 
-  registro: string;
-  razao: string;
   fantasia: string;
+  razao: string;
+  registro: string;
   cnpj_cpf: string;
 
   sinc_nome: boolean;
