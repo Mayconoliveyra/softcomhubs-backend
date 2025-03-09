@@ -1,10 +1,17 @@
 import schedule from 'node-schedule';
 
-const consultarProdutos = () => {
+const sincronizarProdutos = () => {
   // Executa a cada 1 hora. (1:00, 2:00, 3:00...)
   schedule.scheduleJob('* * * * * *', async () => {
     console.log('TESTE');
   });
 };
 
-export const SelfHost = { consultarProdutos };
+const sincronizarTokens = () => {
+  // Executa a cada 1 hora. (1:00, 2:00, 3:00...)
+  schedule.scheduleJob('* * * * * *', async () => {
+    console.log('TESTE');
+  });
+};
+
+export const SelfHost = { sincronizarProdutos, sincronizarTokens };

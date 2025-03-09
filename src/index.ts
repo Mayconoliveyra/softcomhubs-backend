@@ -17,7 +17,8 @@ const startServer = () => {
     console.log(`App rodando na porta ${PORT_HTTPS} (https)`);
   });
 
-  Tarefas.SelfHost.consultarProdutos();
+  Tarefas.SelfHost.sincronizarTokens();
+  Tarefas.SelfHost.sincronizarProdutos();
 };
 
 Knex.migrate

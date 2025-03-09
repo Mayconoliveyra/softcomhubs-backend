@@ -28,7 +28,7 @@ export async function up(knex: Knex) {
       table.string('sh_url', 255);
       table.string('sh_client_id', 255);
       table.string('sh_client_secret', 255);
-      table.string('sh_token', 255);
+      table.text('sh_token');
       table.bigInteger('sh_token_exp');
       table.bigInteger('sh_ultima_sinc');
 
