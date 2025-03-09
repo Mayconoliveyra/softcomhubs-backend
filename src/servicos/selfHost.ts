@@ -5,6 +5,8 @@ import { Repositorios } from '../repositorios';
 
 import { Util } from '../util';
 
+const TIMEOUT_SELF_HOST = 6000;
+
 interface ISelfHostProduto {
   produto_id: number;
   nome: string;
@@ -45,7 +47,7 @@ interface IResultadoBusca {
   ultimaDataSync: number | null;
 }
 
-const obterClientSecret = async (secret: string | null, sh_qrcode_url: string): Promise<string | null> => {
+/* const obterClientSecret = async (secret: string | null, sh_qrcode_url: string): Promise<string | null> => {
   try {
     if (secret) {
       return secret;
@@ -161,6 +163,67 @@ const buscarProdutos = async (empresa_id: string): Promise<IResultadoBusca> => {
     Util.Log.error(`Erro ao buscar produtos no SelfHost para empresa ${empresa_id}`, error);
     return { produtos: [], ultimaDataSync: null };
   }
+}; */
+
+const extrairDominioEClientId = (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    const clientId = urlObj.searchParams.get('client_id');
+    const dominio = `${urlObj.protocol}//${urlObj.host}`;
+    if (!clientId) throw new Error('Client ID não encontrado na URL');
+    return { dominio, clientId };
+  } catch (error) {
+    Util.Log.error('Erro ao extrair domínio e client_id', error);
+    return null;
+  }
 };
 
-export const SelfHost = { buscarProdutos, obterToken, obterClientSecret };
+const obterClientSecret = async (dominio: string, clientId: string) => {
+  const gerarDeviceId = () => {
+    const randomLetter = String.fromCharCode(65 + Math.floor(Math.random() * 26)); // Letra aleatória de A-Z
+    const randomDigits = Math.floor(100 + Math.random() * 900); // Dois dígitos aleatórios
+    return `SOFTCOMHUBS-${randomLetter}${randomDigits}`;
+  };
+
+  try {
+    const deviceId = gerarDeviceId();
+
+    const data = qs.stringify({ client_id: clientId, device_id: deviceId });
+    const response = await axios.post(`${dominio}/device/add`, data, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      timeout: TIMEOUT_SELF_HOST,
+    });
+    return response.data.data.client_secret;
+  } catch (error) {
+    Util.Log.error('Erro ao obter client secret', error);
+    return null;
+  }
+};
+
+const obterToken = async (dominio: string, clientId: string, clientSecret: string) => {
+  try {
+    const data = qs.stringify({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret });
+    const response = await axios.post(`${dominio}/authentication/token`, data, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (!response.data?.data?.token) {
+      Util.Log.error('Resposta inválida ao obter token', response.data);
+      return null;
+    }
+
+    const sh_token = response.data.data.token;
+    const sh_token_exp = Util.DataHora.obterTimestampAtual() + 2400; // Atualiza o token 40 minutos antes do vencimento
+    return { sh_token, sh_token_exp };
+  } catch (error) {
+    Util.Log.error('Erro ao obter token', error);
+    return null;
+  }
+};
+
+export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken };

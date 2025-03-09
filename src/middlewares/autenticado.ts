@@ -38,7 +38,7 @@ const autenticado: RequestHandler = async (req, res, next) => {
       });
     }
 
-    const usuario = await Repositorios.Usuario.buscarPorEmail(jwtData.email);
+    /*  const usuario = await Repositorios.Usuario.buscarPorEmail(jwtData.email);
     if (!usuario) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         errors: { default: 'Usuário não encontrado' },
@@ -53,7 +53,7 @@ const autenticado: RequestHandler = async (req, res, next) => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { senha, ...usuarioSemSenha } = usuario;
-    (req as any).usuario = usuarioSemSenha as IUsuario;
+    (req as any).usuario = usuarioSemSenha as IUsuario; */
 
     return next();
   } catch (error) {

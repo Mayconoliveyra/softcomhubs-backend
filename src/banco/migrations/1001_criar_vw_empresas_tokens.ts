@@ -37,6 +37,11 @@ export async function up(knex: Knex): Promise<void> {
         deleted_at IS NULL 
         AND ativo = TRUE
         AND sh_qrcode_url IS NOT NULL
+        AND sh_url IS NOT NULL
+        AND sh_client_id IS NOT NULL
+        AND sh_client_secret IS NOT NULL
+        AND sh_token IS NOT NULL
+        AND sh_token_exp IS NOT NULL
         AND sh_token_exp < UNIX_TIMESTAMP(NOW());
   `);
 
