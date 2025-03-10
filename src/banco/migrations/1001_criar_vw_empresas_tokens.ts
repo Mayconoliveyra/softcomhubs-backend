@@ -13,8 +13,10 @@ export async function up(knex: Knex): Promise<void> {
           registro,
           sh_url,
           sh_client_id,
+          sh_token,
           sh_client_secret,
           sh_token_exp,
+          COALESCE(sh_ultima_sinc, 0) AS sh_ultima_sinc, -- Se for NULL, retorna 0
           FROM_UNIXTIME(sh_token_exp) AS sh_token_exp_datetime,
           (sh_token_exp <= UNIX_TIMESTAMP(NOW())) AS renovar, -- Indica se o token já precisa ser renovado
           ((sh_token_exp + 960) > UNIX_TIMESTAMP(NOW())) AS valido, -- Indica se o token ainda está dentro da margem de 16 minutos

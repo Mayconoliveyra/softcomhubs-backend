@@ -11,7 +11,7 @@ const TIMEOUT_SELF_HOST = 120000; // 2 minutos
 interface ISelfHostProduto {
   produto_id: number;
   nome: string;
-  sku: string;
+  id: number;
   estoque: string;
   preco_venda: string;
   fabricante: string | null;
@@ -228,25 +228,23 @@ const obterToken = async (dominio: string, clientId: string, clientSecret: strin
   }
 };
 
-const buscarProdutos = async (empresa_id: string): Promise<IResultadoBusca> => {
-  try {
-    const empresa = await Repositorios.Empresa.buscarPorId(empresa_id);
-    if (!empresa) throw new Error(`Empresa ${empresa_id} não encontrada`);
+const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: string, sh_ultima_sinc: number): Promise<IResultadoBusca> => {
+  const removerGradeDoNome = (nome: string): string => {
+    return nome.replace(/\s-\s[^-]+\s-\s[^-]+$/, '').trim();
+  };
 
-    const baseUrl = empresa.sh_url;
-    const token = empresa.sh_token;
-    const sync = empresa.sh_ultima_sinc || 0;
+  try {
     let page = 1;
     let produtosFormatados: IProdutoFormatado[] = [];
-    let ultimaDataSync = sync;
+    let ultimaDataSync = sh_ultima_sinc;
     let hasNextPage = true;
 
     while (hasNextPage) {
-      const url = `${baseUrl}/api/produtos/produtos/ultima_sincronizacao/${sync}/page/${page}`;
+      const url = `${sh_url}/api/produtos/produtos/ultima_sincronizacao/${sh_ultima_sinc}/page/${page}`;
       Util.Log.info(`Buscando produtos na página ${page} da empresa ${empresa_id}`);
 
       const response = await axios.get<ISelfHostResponse>(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${sh_token}` },
         timeout: TIMEOUT_SELF_HOST,
       });
 
@@ -266,10 +264,10 @@ const buscarProdutos = async (empresa_id: string): Promise<IResultadoBusca> => {
         sh_nome: produto.nome,
         sh_preco: parseFloat(produto.preco_venda) || 0,
         sh_produto_id: produto.produto_id.toString(),
-        sh_nome_formatado: produto.nome.replace(/[^a-zA-Z0-9]/g, ''),
-        sh_sku: produto.sku,
+        sh_nome_formatado: removerGradeDoNome(produto.nome),
+        sh_sku: produto.id.toString(),
         sh_estoque: parseInt(produto.estoque) || 0,
-        sh_marca: produto.fabricante || 'Não informado',
+        sh_marca: produto.fabricante && produto.fabricante != 'SELECIONE' ? produto.fabricante : 'Não informado',
       }));
 
       produtosFormatados = [...produtosFormatados, ...produtosProcessados];
@@ -281,7 +279,7 @@ const buscarProdutos = async (empresa_id: string): Promise<IResultadoBusca> => {
     return { produtos: produtosFormatados, ultimaDataSync };
   } catch (error) {
     Util.Log.error(`Erro ao buscar produtos no SelfHost para empresa ${empresa_id}`, error);
-    return { produtos: [], ultimaDataSync: null };
+    return { produtos: [], ultimaDataSync: sh_ultima_sinc };
   }
 };
 
