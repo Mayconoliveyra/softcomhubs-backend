@@ -5,7 +5,8 @@ import { Repositorios } from '../repositorios';
 
 import { Util } from '../util';
 
-const TIMEOUT_SELF_HOST = 6000;
+// !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO A TAREFA "selfHost.sincronizarTokens". !!!
+const TIMEOUT_SELF_HOST = 120000; // 2 minutos
 
 interface ISelfHostProduto {
   produto_id: number;
@@ -210,6 +211,7 @@ const obterToken = async (dominio: string, clientId: string, clientSecret: strin
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      timeout: TIMEOUT_SELF_HOST,
     });
 
     if (!response.data?.data?.token) {
@@ -226,4 +228,61 @@ const obterToken = async (dominio: string, clientId: string, clientSecret: strin
   }
 };
 
-export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken };
+const buscarProdutos = async (empresa_id: string): Promise<IResultadoBusca> => {
+  try {
+    const empresa = await Repositorios.Empresa.buscarPorId(empresa_id);
+    if (!empresa) throw new Error(`Empresa ${empresa_id} não encontrada`);
+
+    const baseUrl = empresa.sh_url;
+    const token = empresa.sh_token;
+    const sync = empresa.sh_ultima_sinc || 0;
+    let page = 1;
+    let produtosFormatados: IProdutoFormatado[] = [];
+    let ultimaDataSync = sync;
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+      const url = `${baseUrl}/api/produtos/produtos/ultima_sincronizacao/${sync}/page/${page}`;
+      Util.Log.info(`Buscando produtos na página ${page} da empresa ${empresa_id}`);
+
+      const response = await axios.get<ISelfHostResponse>(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: TIMEOUT_SELF_HOST,
+      });
+
+      if (response.data.code !== 1) {
+        Util.Log.error(`Erro ao buscar produtos da empresa ${empresa_id}: ${response.data.message}`);
+        break;
+      }
+
+      if (!response.data.hasData) {
+        Util.Log.info(`Finalizada busca de produtos para empresa ${empresa_id}`);
+        break;
+      }
+
+      const produtosProcessados: IProdutoFormatado[] = response.data.data.map((produto) => ({
+        uuid: Util.UuidV4.gerar(),
+        empresa_id,
+        sh_nome: produto.nome,
+        sh_preco: parseFloat(produto.preco_venda) || 0,
+        sh_produto_id: produto.produto_id.toString(),
+        sh_nome_formatado: produto.nome.replace(/[^a-zA-Z0-9]/g, ''),
+        sh_sku: produto.sku,
+        sh_estoque: parseInt(produto.estoque) || 0,
+        sh_marca: produto.fabricante || 'Não informado',
+      }));
+
+      produtosFormatados = [...produtosFormatados, ...produtosProcessados];
+      ultimaDataSync = response.data.date_sync;
+      page = response.data.meta.page.next || 0;
+      hasNextPage = response.data.meta.page.next !== null;
+    }
+
+    return { produtos: produtosFormatados, ultimaDataSync };
+  } catch (error) {
+    Util.Log.error(`Erro ao buscar produtos no SelfHost para empresa ${empresa_id}`, error);
+    return { produtos: [], ultimaDataSync: null };
+  }
+};
+
+export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken, buscarProdutos };

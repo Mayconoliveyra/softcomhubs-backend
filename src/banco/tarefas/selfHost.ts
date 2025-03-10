@@ -31,6 +31,7 @@ const sincronizarProdutos = () => {
 };
 
 const sincronizarTokens = () => {
+  // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
   // Executa a cada 2 minutos para verificar tokens que precisam ser renovados
   schedule.scheduleJob('*/3 * * * *', async () => {
     if (sincronizarTokensEmExecucao) {
@@ -66,7 +67,7 @@ const sincronizarTokens = () => {
 
       Util.Log.info(`${empresas.length} tokens renovados.`);
     } catch (error) {
-      Util.Log.error('Erro ao sincronizar tokens Selfhost', error);
+      Util.Log.error('Erro ao sincronizar tokens SelfHost', error);
     } finally {
       sincronizarTokensEmExecucao = false;
     }
