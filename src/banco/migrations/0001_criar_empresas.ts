@@ -31,6 +31,7 @@ export async function up(knex: Knex) {
       table.text('sh_token');
       table.bigInteger('sh_token_exp');
       table.bigInteger('sh_ultima_sinc');
+      table.bigInteger('sh_falhas').notNullable().defaultTo(0);
 
       table.boolean('ativo').defaultTo(true);
 

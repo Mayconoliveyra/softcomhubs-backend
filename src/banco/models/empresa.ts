@@ -22,6 +22,7 @@ export interface IEmpresa {
   sh_token: string;
   sh_token_exp: number;
   sh_ultima_sinc?: number | null;
+  sh_falhas: number;
 
   ativo: boolean;
 
