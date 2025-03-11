@@ -36,7 +36,7 @@ const sincronizarProdutos = () => {
 
     emExecucaoProdutos = true;
     try {
-      const empresas = (await Knex(ETableNames.vw_empresas_tokens).where('valido', true)) as IEmpresaToken[];
+      const empresas = (await Knex(ETableNames.vw_sh_empresas_tokens).where('valido', true)) as IEmpresaToken[];
 
       if (!empresas.length) return;
 
@@ -78,7 +78,7 @@ const sincronizarTokens = () => {
     emExecucaoTokens = true;
     try {
       // Buscar todas as empresas que precisam de renovação
-      const empresas = (await Knex(ETableNames.vw_empresas_tokens).where('renovar', '=', 1).limit(10)) as IEmpresaToken[];
+      const empresas = (await Knex(ETableNames.vw_sh_empresas_tokens).where('renovar', '=', 1).limit(10)) as IEmpresaToken[];
 
       if (!empresas.length) return;
 
