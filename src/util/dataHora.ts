@@ -95,6 +95,32 @@ const adicionarDias = (data: string | Date, quantidade: number, formato: TFormat
   return moment(data).add(quantidade, 'days').format(formato);
 };
 
+const gerarTimestampMM = (minutosMin: number, minutosMax: number, erroTentativas?: 0 | 1 | 2 | 3): number => {
+  const agora = obterTimestampAtual();
+  const segundosMin = minutosMin * 60;
+  const segundosMax = minutosMax * 60;
+
+  const incrementoAleatorio = Math.floor(Math.random() * (segundosMax - segundosMin + 1)) + segundosMin;
+  let timestampFinal = agora + incrementoAleatorio;
+
+  // Se for erro, ajusta apenas os últimos 2 dígitos (1 → ...01, 2 → ...02, 3 → ...03)
+  if (erroTentativas && erroTentativas >= 1 && erroTentativas <= 3) {
+    timestampFinal = Math.floor(timestampFinal / 100) * 100 + erroTentativas; // 🔹 Substitui os últimos 2 dígitos
+  }
+
+  return timestampFinal;
+};
+
+const getErroTentativaMM = (timestamp: number): 1 | 2 | 3 | 0 => {
+  const ultimosDigitos = timestamp % 100; // Pega os últimos 2 dígitos do timestamp
+
+  if (ultimosDigitos >= 1 && ultimosDigitos <= 3) {
+    return ultimosDigitos as 1 | 2 | 3; // Retorna o número da tentativa de erro (1 a 3)
+  }
+
+  return 0; // Se não for um timestamp de erro, retorna 0
+};
+
 export const DataHora = {
   formatarDataHora,
   obterDataAtual,
@@ -104,4 +130,6 @@ export const DataHora = {
   isMesmoDia,
   obterDiaSemana,
   adicionarDias,
+  gerarTimestampMM,
+  getErroTentativaMM,
 };

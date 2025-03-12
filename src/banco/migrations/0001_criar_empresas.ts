@@ -22,18 +22,23 @@ export async function up(knex: Knex) {
 
       table.text('pm4_token');
       table.text('pm4_token_renovacao');
-      table.bigInteger('pm4_token_exp');
+      table.bigInteger('pm4_token_exp').notNullable().defaultTo(0);
 
       table.text('sh_qrcode_url');
       table.string('sh_url', 255);
       table.string('sh_client_id', 255);
       table.string('sh_client_secret', 255);
       table.text('sh_token');
-      table.bigInteger('sh_token_exp');
-      table.bigInteger('sh_ultima_sinc');
-      table.bigInteger('sh_falhas').notNullable().defaultTo(0);
+      table.bigInteger('sh_token_exp').notNullable().defaultTo(0);
+      table.bigInteger('sh_ultima_sinc_produtos').notNullable().defaultTo(0);
 
       table.boolean('ativo').defaultTo(true);
+
+      table.bigInteger('prox_sinc_sh_token').notNullable().defaultTo(0);
+      table.bigInteger('prox_sinc_sh_produtos').notNullable().defaultTo(0);
+
+      table.bigInteger('prox_sinc_p4m_token').notNullable().defaultTo(0);
+      table.bigInteger('prox_sinc_p4m_produtos').notNullable().defaultTo(0);
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));

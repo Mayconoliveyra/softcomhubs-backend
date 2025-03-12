@@ -13,7 +13,7 @@ export interface IEmpresa {
 
   pm4_token?: string | null;
   pm4_token_renovacao?: string | null;
-  pm4_token_exp?: number | null;
+  pm4_token_exp: number;
 
   sh_qrcode_url: string;
   sh_url: string;
@@ -21,10 +21,14 @@ export interface IEmpresa {
   sh_client_secret: string;
   sh_token: string;
   sh_token_exp: number;
-  sh_ultima_sinc?: number | null;
-  sh_falhas: number;
+  sh_ultima_sinc_produtos: number;
 
   ativo: boolean;
+
+  prox_sinc_sh_token: number;
+  prox_sinc_sh_produtos: number;
+  prox_sinc_p4m_token: number;
+  prox_sinc_p4m_produtos: number;
 
   created_at: string;
   updated_at?: string;

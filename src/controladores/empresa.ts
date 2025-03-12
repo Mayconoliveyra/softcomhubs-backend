@@ -24,7 +24,7 @@ const limparDadosSelfHost = async (uuid: string) => {
     sh_client_id: null,
     sh_client_secret: null,
     sh_token: null,
-    sh_token_exp: null,
+    sh_token_exp: 0,
   });
 };
 
