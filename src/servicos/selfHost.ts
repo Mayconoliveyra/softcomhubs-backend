@@ -151,7 +151,7 @@ const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: stri
       }));
 
       produtosFormatados = [...produtosFormatados, ...produtosProcessados];
-      ultimaDataSync = response.data.date_sync || sh_ultima_sinc;
+      ultimaDataSync = response.data.date_sync;
       page = response.data.meta.page.next || 0;
       hasNextPage = response.data.meta.page.next !== null;
     }
