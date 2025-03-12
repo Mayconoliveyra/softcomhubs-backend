@@ -50,9 +50,9 @@ const sincronizarProdutos = () => {
 
       // Buscar todas as empresas que precisam de renovação
       const empresas = (await Knex(ETableNames.vw_sh_produtos_sinc)
-        .where('sh_ultima_sinc_produtos', '<=', agora)
+        .where('prox_sinc_sh_produtos', '<=', agora)
         .andWhere('valido', '=', true)
-        .orderBy('sh_ultima_sinc_produtos', 'asc')
+        .orderBy('prox_sinc_sh_produtos', 'asc')
         .limit(5)) as IProdutoSinc[];
 
       if (!empresas.length) return;
