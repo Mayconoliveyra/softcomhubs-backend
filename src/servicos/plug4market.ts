@@ -62,8 +62,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 
       data.sku = produto.sh_sku;
       data.name = produto.sh_nome;
-      /*  data.price = produto.sh_preco; */
-      data.price = 45678;
+      data.price = produto.sh_preco;
       data.stock = produto.sh_estoque;
       data.brand = produto.sh_marca;
       data.productName = produto.sh_nome_formatado;
@@ -99,8 +98,6 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
     }
   } catch (error) {
     const axiosError = error as AxiosError as any;
-
-    console.log('aaa', axiosError.response?.data?.error_messages);
 
     // Se tiver tentando cadastrar um produto que já tem o SKU cadastrado vai ser retornado mensagem 'Produto não atualizado'.
     // Nessa situação vou tratar como sucesso e apenas seta as colunas de sincronizado p4m_
