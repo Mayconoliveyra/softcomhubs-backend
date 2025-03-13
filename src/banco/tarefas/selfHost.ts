@@ -113,7 +113,7 @@ const sincronizarProdutos = () => {
             if (produtos.ultimaDataSync === empresa.sh_ultima_sinc_produtos) {
               const proxSinc = Util.DataHora.getErroTentativaMM(empresa.prox_sinc_sh_produtos); // Obtém tentativas anteriores (1, 2, 3)
               const tentativa = proxSinc * 10; // Cada tentativa adiciona +10 min (1 → 10min, 2 → 20min, 3 → 30min)
-              const novaTentativa = (proxSinc ? proxSinc + 1 : 0) as 1 | 2 | 3 | 0; // Incrementa tentativa
+              const novaTentativa = (proxSinc ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0; // Incrementa tentativa
 
               await Knex(ETableNames.empresas)
                 .where('uuid', empresa.uuid)
@@ -204,7 +204,7 @@ const sincronizarTokens = () => {
             const tentativa = proxSinc * 10;
 
             // Incrementa quantidade de tentativas
-            const novaTentativa = (tentativa ? proxSinc + 1 : 0) as 1 | 2 | 3 | 0;
+            const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
 
             await Knex(ETableNames.empresas)
               .where('uuid', empresa.uuid)
