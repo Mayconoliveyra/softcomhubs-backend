@@ -143,13 +143,15 @@ const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: stri
       const produtosProcessados: IProdutoFormatado[] = response.data.data.map((produto) => ({
         uuid: Util.UuidV4.gerar(),
         empresa_id,
-        sh_nome: produto.nome,
-        sh_preco: parseFloat(produto.preco_venda) || 0,
-        sh_produto_id: produto.produto_id.toString(),
-        sh_nome_formatado: removerGradeDoNome(produto.nome),
-        sh_sku: produto.id.toString(),
-        sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? parseInt(produto.estoque) : 0,
-        sh_marca: produto.fabricante && produto.fabricante != 'SELECIONE' ? produto.fabricante : 'Não informado',
+        sh_nome: produto.nome ? produto.nome.substring(0, 250) : '',
+        sh_preco: produto.preco_venda
+          ? parseFloat(parseFloat(produto.preco_venda).toFixed(2)) // Garante 10,2
+          : 0,
+        sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
+        sh_nome_formatado: produto.nome ? removerGradeDoNome(produto.nome).substring(0, 250) : '',
+        sh_sku: produto.id ? produto.id.toString() : '',
+        sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? Math.min(Number.MAX_SAFE_INTEGER, parseInt(produto.estoque)) : 0,
+        sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : '',
       }));
 
       produtosFormatados = [...produtosFormatados, ...produtosProcessados];
