@@ -39,6 +39,8 @@ export interface IProdutoSinc {
   dif_preco: boolean;
   dif_estoque: boolean;
   dif_marca: boolean;
+  prox_sinc_p4m: number;
+  prox_sinc_p4m_datetime: string;
 }
 
 let emExecucaoTokens = false;

@@ -39,13 +39,16 @@ export async function up(knex: Knex): Promise<void> {
         IF(e.sinc_nome = 1, (IFNULL(p.sh_nome, '') <> IFNULL(p.p4m_nome, '') OR IFNULL(p.sh_nome_formatado, '') <> IFNULL(p.p4m_nome_formatado, '')), 0) AS dif_nome,
         IF(e.sinc_preco = 1, IFNULL(p.sh_preco, 0) <> IFNULL(p.p4m_preco, 0), 0) AS dif_preco,
         IF(e.sinc_estoque = 1, IFNULL(p.sh_estoque, 0) <> IFNULL(p.p4m_estoque, 0), 0) AS dif_estoque,
-        IF(e.sinc_fabricante = 1, IFNULL(p.sh_marca, '') <> IFNULL(p.p4m_marca, ''), 0) AS dif_marca
+        IF(e.sinc_fabricante = 1, IFNULL(p.sh_marca, '') <> IFNULL(p.p4m_marca, ''), 0) AS dif_marca,
+        p.prox_sinc_p4m,
+        FROM_UNIXTIME(p.prox_sinc_p4m) AS prox_sinc_p4m_datetime
     FROM produtos p
     JOIN empresas e ON p.empresa_id = e.uuid
     WHERE e.ativo = 1 
     AND e.deleted_at IS NULL 
     AND e.pm4_token_exp >= UNIX_TIMESTAMP()
-    AND e.pm4_token IS NOT NULL;
+    AND e.pm4_token IS NOT NULL
+    ORDER BY p.prox_sinc_p4m ASC;
   `);
 
   Util.Log.info(`# Criado view ${ETableNames.vw_p4m_produtos_sinc}`);

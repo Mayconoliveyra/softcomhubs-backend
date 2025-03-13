@@ -16,6 +16,8 @@ export interface IProduto {
   p4m_estoque?: number | null;
   p4m_marca?: string | null;
 
+  prox_sinc_p4m: number;
+
   created_at: string;
   updated_at?: string | null;
   deleted_at?: string | null;
