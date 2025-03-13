@@ -89,8 +89,14 @@ const sincronizarProdutos = () => {
 
                     await trx(ETableNames.produtos)
                       .insert(lote) // 🔹 Insere lote por lote
-                      .onConflict(['sh_sku', 'empresa_id']) // 🔹 Atualiza se já existir
-                      .merge();
+                      .onConflict(['sh_produto_id', 'sh_sku', 'empresa_id']) // 🔹 Atualiza se já existir
+                      .merge({
+                        sh_nome: Knex.raw('VALUES(sh_nome)'),
+                        sh_preco: Knex.raw('VALUES(sh_preco)'),
+                        sh_nome_formatado: Knex.raw('VALUES(sh_nome_formatado)'),
+                        sh_estoque: Knex.raw('VALUES(sh_estoque)'),
+                        sh_marca: Knex.raw('VALUES(sh_marca)'),
+                      });
                   }
                 }
 

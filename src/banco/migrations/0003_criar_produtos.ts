@@ -30,7 +30,7 @@ export async function up(knex: Knex) {
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
       table.timestamp('deleted_at').nullable();
 
-      table.unique(['sh_sku', 'empresa_id'], { indexName: 'idx_unique_produto' });
+      table.unique(['sh_produto_id', 'sh_sku', 'empresa_id'], { indexName: 'idx_unique_produto' });
     })
     .then(() => {
       Util.Log.info(`# Criado tabela ${ETableNames.produtos}`);

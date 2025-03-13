@@ -151,7 +151,7 @@ const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: stri
         sh_nome_formatado: produto.nome ? removerGradeDoNome(produto.nome).substring(0, 250) : '',
         sh_sku: produto.id ? produto.id.toString() : '',
         sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? Math.min(Number.MAX_SAFE_INTEGER, parseInt(produto.estoque)) : 0,
-        sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : '',
+        sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : 'Não informado',
       }));
 
       produtosFormatados = [...produtosFormatados, ...produtosProcessados];
