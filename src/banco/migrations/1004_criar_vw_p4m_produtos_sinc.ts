@@ -10,6 +10,7 @@ export async function up(knex: Knex): Promise<void> {
     SELECT 
         p.uuid,
         p.empresa_id,
+        e.pm4_token,
         p.sh_nome,
         p.sh_preco,
         p.sh_produto_id,
@@ -34,14 +35,17 @@ export async function up(knex: Knex): Promise<void> {
                 OR (e.sinc_fabricante = 1 AND IFNULL(p.sh_marca, '') <> IFNULL(p.p4m_marca, ''))
             ) THEN 'ATUALIZAR'
             ELSE 'SINCRONIZADA'
-        END AS status,
+        END AS status_envio,
         IF(e.sinc_nome = 1, (IFNULL(p.sh_nome, '') <> IFNULL(p.p4m_nome, '') OR IFNULL(p.sh_nome_formatado, '') <> IFNULL(p.p4m_nome_formatado, '')), 0) AS dif_nome,
         IF(e.sinc_preco = 1, IFNULL(p.sh_preco, 0) <> IFNULL(p.p4m_preco, 0), 0) AS dif_preco,
         IF(e.sinc_estoque = 1, IFNULL(p.sh_estoque, 0) <> IFNULL(p.p4m_estoque, 0), 0) AS dif_estoque,
         IF(e.sinc_fabricante = 1, IFNULL(p.sh_marca, '') <> IFNULL(p.p4m_marca, ''), 0) AS dif_marca
     FROM produtos p
     JOIN empresas e ON p.empresa_id = e.uuid
-    WHERE e.ativo = 1 AND e.deleted_at IS NULL AND e.pm4_token_exp >= UNIX_TIMESTAMP();
+    WHERE e.ativo = 1 
+    AND e.deleted_at IS NULL 
+    AND e.pm4_token_exp >= UNIX_TIMESTAMP()
+    AND e.pm4_token IS NOT NULL;
   `);
 
   Util.Log.info(`# Criado view ${ETableNames.vw_p4m_produtos_sinc}`);

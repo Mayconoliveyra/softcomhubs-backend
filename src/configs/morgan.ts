@@ -19,7 +19,7 @@ const setupMorganBody = (app: Express) => {
     noColors: true,
     stream: logStream,
     prettify: true,
-    filterParameters: ['token', 'auth_id', 'auth_secret'],
+    filterParameters: ['token', 'auth_id', 'auth_secret', 'Authorization'],
   });
 };
 

@@ -21,6 +21,7 @@ const startServer = () => {
   Tarefas.SelfHost.sincronizarProdutos();
 
   Tarefas.Plug4market.sincronizarTokens();
+  Tarefas.Plug4market.sincronizarProdutos();
 };
 
 Knex.migrate

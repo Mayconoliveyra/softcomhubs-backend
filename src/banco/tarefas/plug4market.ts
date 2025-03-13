@@ -16,137 +16,84 @@ interface IEmpresaTokenSinc {
   prox_sinc_p4m_token_datetime: string;
 }
 
-interface IProdutoSinc {
+export interface IProdutoSinc {
   uuid: string;
-  sh_url: string;
-  sh_token: string;
-  sh_token_exp: string;
-  sh_token_exp_datetime: string;
-  prox_sinc_sh_produtos: number;
-  prox_sinc_sh_produtos_datetime: string;
-  sh_ultima_sinc_produtos: number;
-  sh_ultima_sinc_produtos_datetime: string;
-  valido: boolean;
+  empresa_id: string;
+  pm4_token: string;
+  sh_nome: string;
+  sh_preco: number;
+  sh_produto_id: string;
+  sh_nome_formatado: string;
+  sh_sku: string;
+  sh_estoque: number;
+  sh_marca: string;
+  p4m_nome: string | null;
+  p4m_preco: number | null;
+  p4m_produto_id: string | null;
+  p4m_nome_formatado: string | null;
+  p4m_sku: string | null;
+  p4m_estoque: number | null;
+  p4m_marca: string | null;
+  status_envio: 'TOKEN_EXPIRADO' | 'CADASTRAR' | 'ATUALIZAR' | 'SINCRONIZADA';
+  dif_nome: boolean;
+  dif_preco: boolean;
+  dif_estoque: boolean;
+  dif_marca: boolean;
 }
 
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
 
+const LIMITE_REQUISICOES_POR_EMPRESA = 60;
+const INTERVALO_MINUTOS = 1;
+
 const sincronizarProdutos = () => {
-  // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
-  // Executa a cada 3 minutos
-  schedule.scheduleJob('*/3 * * * *', async () => {
+  schedule.scheduleJob(`*/${INTERVALO_MINUTOS} * * * *`, async () => {
     if (emExecucaoProdutos) {
-      Util.Log.warn(`[P4M] | Produtos | Tarefa de sincronização de produtos já está em execução.`);
+      Util.Log.warn('[P4M] | Produtos | Sincronização já em execução.');
       return;
     }
-
     emExecucaoProdutos = true;
+
     try {
-      const agora = Util.DataHora.obterTimestampAtual();
-      // !! SE FUTURAMENTE AUMENTAR A QUANTIDADE DE CLIENTES, APENAS AJUSTAR O LIMIT
-
-      // Buscar todas as empresas que precisam de renovação
-      const empresas = (await Knex(ETableNames.vw_sh_produtos_sinc)
-        .where('prox_sinc_sh_produtos', '<=', agora)
-        .andWhere('valido', '=', true)
-        .orderBy('prox_sinc_sh_produtos', 'asc')
-        .limit(5)) as IProdutoSinc[];
-
-      if (!empresas.length) return;
-
-      // 🔹 Busca produtos de todas as empresas em paralelo para melhor desempenho
-      const resultados = await Promise.all(
-        empresas.map(async (empresa) => {
-          try {
-            const produtos = await Servicos.SelfHost.buscarProdutos(empresa.uuid, empresa.sh_url, empresa.sh_token, empresa.sh_ultima_sinc_produtos);
-            return { empresa, produtos };
-          } catch (error) {
-            Util.Log.error(`[P4M] | Produtos | Erro ao buscar produtos | Empresa: ${empresa.uuid}`, error);
-            return null; // 🔹 Retorna null para ignorar no próximo passo
-          }
-        }),
+      const produtos = await Knex(ETableNames.vw_p4m_produtos_sinc).whereRaw(
+        "CONVERT(status_envio USING utf8mb4) COLLATE utf8mb4_unicode_ci IN ('CADASTRAR', 'ATUALIZAR')",
       );
 
-      // 🔹 Processa a inserção de produtos **individualmente** para evitar deadlocks
-      for (const resultado of resultados) {
-        if (!resultado) continue; // 🔹 Ignora empresas que tiveram erro na busca de produtos
+      if (!produtos.length) {
+        emExecucaoProdutos = false;
+        return;
+      }
 
-        const { empresa, produtos } = resultado;
+      const empresasMap = new Map<string, { token: string; produtos: IProdutoSinc[] }>();
 
-        try {
-          if (produtos.produtos.length) {
-            await Knex.transaction(async (trx) => {
-              try {
-                const produtosInserir = produtos.produtos;
-                const loteTamanho = 500; // 🔹 Define tamanho do lote para evitar sobrecarga
-
-                if (produtosInserir.length) {
-                  for (let i = 0; i < produtosInserir.length; i += loteTamanho) {
-                    const lote = produtosInserir.slice(i, i + loteTamanho); // 🔹 Divide os produtos em lotes menores
-
-                    await trx(ETableNames.produtos)
-                      .insert(lote) // 🔹 Insere lote por lote
-                      .onConflict(['sh_sku', 'empresa_id']) // 🔹 Atualiza se já existir
-                      .merge();
-                  }
-                }
-
-                // 🔹 Atualiza a sincronização da empresa
-                await trx(ETableNames.empresas)
-                  .where('uuid', empresa.uuid)
-                  .update({
-                    sh_ultima_sinc_produtos: produtos.ultimaDataSync,
-                    prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
-                  });
-
-                Util.Log.info(`[P4M] Produtos | sincronizados com sucesso! | Total: ${produtosInserir.length} | Empresa: ${empresa.uuid}`);
-              } catch (error) {
-                Util.Log.error(`[P4M] | Produtos | Erro ao inserir produtos! | Empresa: ${empresa.uuid}`, error);
-                throw error; // 🔹 Reverte a transação em caso de erro
-              }
-            });
-          } else {
-            // 🔹 Se `ultimaDataSync` não mudou, significa que houve erro na sincronização
-            if (produtos.ultimaDataSync === empresa.sh_ultima_sinc_produtos) {
-              const proxSinc = Util.DataHora.getErroTentativaMM(empresa.prox_sinc_sh_produtos); // Obtém tentativas anteriores (1, 2, 3)
-              const tentativa = proxSinc * 10; // Cada tentativa adiciona +10 min (1 → 10min, 2 → 20min, 3 → 30min)
-              const novaTentativa = (proxSinc ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0; // Incrementa tentativa
-
-              await Knex(ETableNames.empresas)
-                .where('uuid', empresa.uuid)
-                .update({
-                  sh_ultima_sinc_produtos: produtos.ultimaDataSync,
-                  prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(tentativa || 40, tentativa || 40, novaTentativa),
-                });
-
-              Util.Log.error(`[P4M] | Produtos | Erro na sincronização! | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`);
-            } else {
-              // 🔹 Se não houve erro, mas também não há produtos novos, só atualiza o timestamp normalmente
-              await Knex(ETableNames.empresas)
-                .where('uuid', empresa.uuid)
-                .update({
-                  sh_ultima_sinc_produtos: produtos.ultimaDataSync,
-                  prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
-                });
-
-              Util.Log.info(`[P4M] Produtos | sincronizados com sucesso! | Total: 0 | Empresa: ${empresa.uuid}`);
-            }
-          }
-        } catch (error) {
-          // Se der algum erro, inesperado
-          await Knex(ETableNames.empresas)
-            .where('uuid', empresa.uuid)
-            .update({
-              sh_ultima_sinc_produtos: produtos.ultimaDataSync,
-              prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(50, 60),
-            });
-
-          Util.Log.error(`[P4M] | Produtos | Erro ao processar sincronização | Empresa: ${empresa.uuid}`, error);
+      for (const produto of produtos) {
+        if (!empresasMap.has(produto.empresa_id)) {
+          empresasMap.set(produto.empresa_id, { token: produto.pm4_token, produtos: [] });
         }
+        empresasMap.get(produto.empresa_id)?.produtos.push(produto);
+      }
+
+      for (const [empresaId, { token, produtos }] of empresasMap.entries()) {
+        const produtosLimitados = produtos.slice(0, LIMITE_REQUISICOES_POR_EMPRESA);
+
+        await Promise.all(
+          produtosLimitados.map((produto, index) =>
+            new Promise((resolve) => setTimeout(resolve, index * 1000)) // Envia um a cada 1s
+              .then(() => Servicos.Plug4market.cadastrarOuAtualizarProduto(produto))
+              .then(async (resultado) => {
+                if (resultado?.sucesso) {
+                  console.log(resultado);
+                  /*  await Knex(ETableNames.produtos).where('uuid', produto.uuid).update({ status_envio: 'SINCRONIZADA', updated_at: Knex.fn.now() }); */
+                } else {
+                  Util.Log.error(`[P4M] | Erro na sincronização | SKU: ${produto.sh_sku} | Erro: ${resultado?.mensagem}`);
+                }
+              }),
+          ),
+        );
       }
     } catch (error) {
-      Util.Log.error(`[P4M] | Produtos | Erro ao sincronizar produtos SelfHost`, error);
+      Util.Log.error('[P4M] | Erro ao sincronizar produtos', error);
     } finally {
       emExecucaoProdutos = false;
     }
