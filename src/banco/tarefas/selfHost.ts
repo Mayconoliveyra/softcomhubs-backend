@@ -39,7 +39,7 @@ const sincronizarProdutos = () => {
   // Executa a cada 3 minutos
   schedule.scheduleJob('*/3 * * * *', async () => {
     if (emExecucaoProdutos) {
-      Util.Log.warn('Tarefa de sincronização de produtos já está em execução. Ignorando nova execução.');
+      Util.Log.warn(`[SH] | Produtos | Tarefa de sincronização de produtos já está em execução.`);
       return;
     }
 
@@ -64,7 +64,7 @@ const sincronizarProdutos = () => {
             const produtos = await Servicos.SelfHost.buscarProdutos(empresa.uuid, empresa.sh_url, empresa.sh_token, empresa.sh_ultima_sinc_produtos);
             return { empresa, produtos };
           } catch (error) {
-            Util.Log.error(`Erro ao buscar produtos para empresa ${empresa.uuid}`, error);
+            Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos | Empresa: ${empresa.uuid}`, error);
             return null; // 🔹 Retorna null para ignorar no próximo passo
           }
         }),
@@ -102,9 +102,9 @@ const sincronizarProdutos = () => {
                     prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
                   });
 
-                Util.Log.info(`Empresa ${empresa.uuid}: ${produtosInserir.length} produtos sincronizados.`);
+                Util.Log.info(`[SH] Produtos | sincronizados com sucesso! | Total: ${produtosInserir.length} | Empresa: ${empresa.uuid}`);
               } catch (error) {
-                Util.Log.error(`Erro ao inserir produtos para empresa ${empresa.uuid}`, error);
+                Util.Log.error(`[SH] | Produtos | Erro ao inserir produtos! | Empresa: ${empresa.uuid}`, error);
                 throw error; // 🔹 Reverte a transação em caso de erro
               }
             });
@@ -122,7 +122,7 @@ const sincronizarProdutos = () => {
                   prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(tentativa || 50, tentativa || 60, novaTentativa),
                 });
 
-              Util.Log.warn(`Erro na sincronização para empresa ${empresa.uuid}, reagendado com tentativa ${novaTentativa}.`);
+              Util.Log.error(`[SH] | Produtos | Erro na sincronização! | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`);
             } else {
               // 🔹 Se não houve erro, mas também não há produtos novos, só atualiza o timestamp normalmente
               await Knex(ETableNames.empresas)
@@ -131,6 +131,8 @@ const sincronizarProdutos = () => {
                   sh_ultima_sinc_produtos: produtos.ultimaDataSync,
                   prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
                 });
+
+              Util.Log.info(`[SH] Produtos | sincronizados com sucesso! | Total: 0 | Empresa: ${empresa.uuid}`);
             }
           }
         } catch (error) {
@@ -142,11 +144,11 @@ const sincronizarProdutos = () => {
               prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(50, 60),
             });
 
-          Util.Log.error(`Erro ao processar sincronização para empresa ${empresa.uuid}`, error);
+          Util.Log.error(`[SH] | Produtos | Erro ao processar sincronização | Empresa: ${empresa.uuid}`, error);
         }
       }
     } catch (error) {
-      Util.Log.error('Erro ao sincronizar produtos Selfhost', error);
+      Util.Log.error(`[SH] | Produtos | Erro ao sincronizar produtos SelfHost`, error);
     } finally {
       emExecucaoProdutos = false;
     }
@@ -158,7 +160,7 @@ const sincronizarTokens = () => {
   // Executa a cada 3 minutos
   schedule.scheduleJob('*/1 * * * *', async () => {
     if (emExecucaoTokens) {
-      Util.Log.warn('Tarefa de sincronização de tokens já está em execução. Ignorando nova execução.');
+      Util.Log.warn(`[SH] | Tokens | Tarefa de sincronização de tokens já está em execução.`);
       return;
     }
 
@@ -188,6 +190,8 @@ const sincronizarTokens = () => {
                 sh_token_exp: tokenData.sh_token_exp,
                 prox_sinc_sh_token: Util.DataHora.gerarTimestampMM(30, 45), // Só retorna para fila nos próximos 30~45 minutos.
               });
+
+            Util.Log.info(`[SH] | Tokens | Token renovado com sucesso! | Empresa: ${empresa.uuid}`);
           } else {
             // Obtém a tentativa de erro anterior a partir do timestamp armazenado.
             // Se for um erro identificado (01, 02 ou 03), retorna o número da tentativa (1, 2 ou 3).
@@ -212,14 +216,12 @@ const sincronizarTokens = () => {
                 prox_sinc_sh_token: Util.DataHora.gerarTimestampMM(tentativa || 50, tentativa || 60, novaTentativa),
               });
 
-            Util.Log.warn(`Falha ao renovar token para empresa: ${empresa.uuid}`);
+            Util.Log.error(`[SH] | Tokens | Erro ao renovar token | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`);
           }
         }),
       );
-
-      Util.Log.info(`${empresas.length} tokens renovados.`);
     } catch (error) {
-      Util.Log.error('Erro ao sincronizar tokens SelfHost', error);
+      Util.Log.warn(`[SH] | Tokens | Erro ao sincronizar tokens SelfHost.`, error);
     } finally {
       emExecucaoTokens = false;
     }

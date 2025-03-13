@@ -132,6 +132,8 @@ const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: stri
         Util.Log.error(`Erro ao buscar produtos da empresa ${empresa_id}: ${response.data.message}`);
         break;
       }
+      // Seta a data de sincronização. Essa linha tem que ficar aqui, se colocar a baixo vai ter problemas.
+      ultimaDataSync = response?.data?.date_sync || sh_ultima_sinc;
 
       if (!response.data.hasData) {
         Util.Log.info(`Finalizada busca de produtos para empresa ${empresa_id}`);
@@ -151,7 +153,6 @@ const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: stri
       }));
 
       produtosFormatados = [...produtosFormatados, ...produtosProcessados];
-      ultimaDataSync = response.data.date_sync;
       page = response.data.meta.page.next || 0;
       hasNextPage = response.data.meta.page.next !== null;
     }
