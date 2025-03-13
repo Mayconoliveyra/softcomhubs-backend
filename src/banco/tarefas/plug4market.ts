@@ -47,6 +47,50 @@ let emExecucaoProdutos = false;
 const LIMITE_REQUISICOES_POR_EMPRESA = 60;
 const INTERVALO_MINUTOS = 1;
 
+const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
+  try {
+    const camposAtualizar: Partial<IProdutoSinc> = {};
+
+    if (!produto.p4m_produto_id && !produto.p4m_sku) {
+      camposAtualizar.p4m_produto_id = produto.sh_produto_id;
+      camposAtualizar.p4m_sku = produto.sh_sku;
+
+      camposAtualizar.p4m_nome = produto.sh_nome;
+      camposAtualizar.p4m_nome_formatado = produto.sh_nome_formatado;
+      camposAtualizar.p4m_preco = produto.sh_preco;
+      camposAtualizar.p4m_estoque = produto.sh_estoque;
+      camposAtualizar.p4m_marca = produto.sh_marca;
+    } else {
+      if (produto.dif_nome) {
+        camposAtualizar.p4m_nome = produto.sh_nome;
+        camposAtualizar.p4m_nome_formatado = produto.sh_nome_formatado;
+      }
+      if (produto.dif_preco) {
+        camposAtualizar.p4m_preco = produto.sh_preco;
+      }
+      if (produto.dif_estoque) {
+        camposAtualizar.p4m_estoque = produto.sh_estoque;
+      }
+      if (produto.dif_marca) {
+        camposAtualizar.p4m_marca = produto.sh_marca;
+      }
+    }
+
+    if (Object.keys(camposAtualizar).length === 0) {
+      Util.Log.info(`[P4M] | Produto ${produto.uuid} já sincronizado, nenhuma atualização necessária.`);
+      return true;
+    }
+
+    await Knex(ETableNames.produtos).where({ uuid: produto.uuid }).update(camposAtualizar);
+
+    Util.Log.info(`[P4M] | Produto | Sucesso ao atualizar produto | Ação: ${acao} | Produto: ${produto.uuid}`);
+    return true;
+  } catch (error) {
+    Util.Log.error(`[P4M] | Produto | Erro ao atualizar produto | Ação: ${acao} | Produto: ${produto.uuid}`, error);
+    return false;
+  }
+};
+
 const sincronizarProdutos = () => {
   schedule.scheduleJob(`*/${INTERVALO_MINUTOS} * * * *`, async () => {
     if (emExecucaoProdutos) {
@@ -83,10 +127,9 @@ const sincronizarProdutos = () => {
               .then(() => Servicos.Plug4market.cadastrarOuAtualizarProduto(produto))
               .then(async (resultado) => {
                 if (resultado?.sucesso) {
-                  console.log(resultado);
-                  /*  await Knex(ETableNames.produtos).where('uuid', produto.uuid).update({ status_envio: 'SINCRONIZADA', updated_at: Knex.fn.now() }); */
+                  await atualizarProdutoP4M(produto, resultado.acao);
                 } else {
-                  Util.Log.error(`[P4M] | Erro na sincronização | SKU: ${produto.sh_sku} | Erro: ${resultado?.mensagem}`);
+                  Util.Log.error(`[P4M] | Produto | Erro | Ação: ${resultado?.acao} | Produto: ${produto.uuid}`, resultado);
                 }
               }),
           ),

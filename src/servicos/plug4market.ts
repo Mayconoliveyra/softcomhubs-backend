@@ -35,13 +35,14 @@ const renovarToken = async (refreshToken: string) => {
 };
 
 const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
+  const ehAtualizar = produto.status_envio === 'ATUALIZAR' ? true : false;
+  const acao = ehAtualizar ? 'ATUALIZAR' : 'CADASTRAR';
+
   try {
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${produto.pm4_token}`,
     };
-
-    const ehAtualizar = produto.status_envio === 'ATUALIZAR' ? true : false;
 
     const url = ehAtualizar ? `${URL_BASE_P4M}/products/${produto.sh_sku}` : `${URL_BASE_P4M}/products`;
     const metodo = ehAtualizar ? 'put' : 'post';
@@ -56,7 +57,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.height = 1.234567;
       data.length = 1.234567;
       data.salesChannels = [];
-      data.weight = 1.234567;
+      data.weight = 1234567; // Peso é gramas
       data.width = 1.234567;
 
       data.sku = produto.sh_sku;
@@ -85,22 +86,17 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
     });
 
     if (response.status === 200 || response.status === 201) {
-      Util.Log.info(`[P4M] | Produto | ${metodo.toUpperCase()} | SKU: ${produto.sh_sku} | Sucesso`);
-      return { sucesso: true, data: response.data };
+      return { sucesso: true, acao: acao, uuid: produto.uuid };
     }
   } catch (error) {
     const axiosError = error as AxiosError as any;
-    Util.Log.error(`[P4M] | Produto | Erro ao ${produto.status_envio === 'ATUALIZAR' ? 'atualizar' : 'cadastrar'} SKU: ${produto.sh_sku}`, axiosError);
-
-    const mensagemErro =
-      axiosError.response?.data && typeof axiosError.response.data === 'object'
-        ? axiosError.response.data.error_messages?.[0]?.message?.[0]?.message || axiosError.response.data.message || 'Erro desconhecido'
-        : 'Erro desconhecido';
 
     return {
       sucesso: false,
-      mensagem: mensagemErro,
+      acao: acao,
+      erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
       status: axiosError.response?.status || 500,
+      uuid: produto.uuid,
     };
   }
 };
