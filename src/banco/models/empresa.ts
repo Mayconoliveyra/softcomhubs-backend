@@ -11,6 +11,8 @@ export interface IEmpresa {
   sinc_estoque: boolean;
   sinc_fabricante: boolean;
 
+  sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
+
   pm4_token?: string | null;
   pm4_token_renovacao?: string | null;
   pm4_token_exp: number;

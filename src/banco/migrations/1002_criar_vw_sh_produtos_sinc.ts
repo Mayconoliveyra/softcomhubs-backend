@@ -9,6 +9,7 @@ export async function up(knex: Knex): Promise<void> {
     CREATE VIEW vw_sh_produtos_sinc AS
     SELECT 
           uuid,
+          sinc_preco_tipo,
           sh_url,
           sh_token,
           sh_token_exp,

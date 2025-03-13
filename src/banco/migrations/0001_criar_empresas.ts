@@ -20,6 +20,8 @@ export async function up(knex: Knex) {
       table.boolean('sinc_estoque').defaultTo(true);
       table.boolean('sinc_fabricante').defaultTo(true);
 
+      table.enum('sinc_preco_tipo', ['PADRAO', 'A', 'B', 'C']).defaultTo('PADRAO').notNullable();
+
       table.text('pm4_token');
       table.text('pm4_token_renovacao');
       table.bigInteger('pm4_token_exp').notNullable().defaultTo(0);

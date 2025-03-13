@@ -20,6 +20,7 @@ interface IEmpresaTokenSinc {
 
 interface IProdutoSinc {
   uuid: string;
+  sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
   sh_url: string;
   sh_token: string;
   sh_token_exp: string;
@@ -61,7 +62,13 @@ const sincronizarProdutos = () => {
       const resultados = await Promise.all(
         empresas.map(async (empresa) => {
           try {
-            const produtos = await Servicos.SelfHost.buscarProdutos(empresa.uuid, empresa.sh_url, empresa.sh_token, empresa.sh_ultima_sinc_produtos);
+            const produtos = await Servicos.SelfHost.buscarProdutos(
+              empresa.uuid,
+              empresa.sh_url,
+              empresa.sh_token,
+              empresa.sh_ultima_sinc_produtos,
+              empresa.sinc_preco_tipo,
+            );
             return { empresa, produtos };
           } catch (error) {
             Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos | Empresa: ${empresa.uuid}`, error);

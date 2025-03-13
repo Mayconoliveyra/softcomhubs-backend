@@ -12,6 +12,9 @@ interface ISelfHostProduto {
   id: number;
   estoque: string;
   preco_venda: string;
+  PrecoA: string;
+  PrecoB: string;
+  PrecoC: string;
   fabricante: string | null;
 }
 
@@ -108,7 +111,13 @@ const obterToken = async (dominio: string, clientId: string, clientSecret: strin
   }
 };
 
-const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: string, sh_ultima_sinc: number): Promise<IResultadoBusca> => {
+const buscarProdutos = async (
+  empresa_id: string,
+  sh_url: string,
+  sh_token: string,
+  sh_ultima_sinc: number,
+  sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C',
+): Promise<IResultadoBusca> => {
   const removerGradeDoNome = (nome: string): string => {
     return nome.replace(/\s-\s[^-]+\s-\s[^-]+$/, '').trim();
   };
@@ -140,19 +149,34 @@ const buscarProdutos = async (empresa_id: string, sh_url: string, sh_token: stri
         break;
       }
 
-      const produtosProcessados: IProdutoFormatado[] = response.data.data.map((produto) => ({
-        uuid: Util.UuidV4.gerar(),
-        empresa_id,
-        sh_nome: produto.nome ? produto.nome.substring(0, 250) : '',
-        sh_preco: produto.preco_venda
-          ? parseFloat(parseFloat(produto.preco_venda).toFixed(2)) // Garante 10,2
-          : 0,
-        sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
-        sh_nome_formatado: produto.nome ? removerGradeDoNome(produto.nome).substring(0, 250) : '',
-        sh_sku: produto.id ? produto.id.toString() : '',
-        sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? Math.min(Number.MAX_SAFE_INTEGER, parseInt(produto.estoque)) : 0,
-        sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : 'Não informado',
-      }));
+      const produtosProcessados: IProdutoFormatado[] = response.data.data.map((produto) => {
+        let preco = 0;
+        switch (sinc_preco_tipo) {
+          case 'A':
+            preco = produto.PrecoA ? parseFloat(parseFloat(produto.PrecoA).toFixed(2)) : 0;
+            break;
+          case 'B':
+            preco = produto.PrecoB ? parseFloat(parseFloat(produto.PrecoB).toFixed(2)) : 0;
+            break;
+          case 'C':
+            preco = produto.PrecoC ? parseFloat(parseFloat(produto.PrecoC).toFixed(2)) : 0;
+            break;
+          default:
+            preco = produto.preco_venda ? parseFloat(parseFloat(produto.preco_venda).toFixed(2)) : 0;
+        }
+
+        return {
+          uuid: Util.UuidV4.gerar(),
+          empresa_id,
+          sh_nome: produto.nome ? produto.nome.substring(0, 250) : '',
+          sh_preco: preco,
+          sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
+          sh_nome_formatado: produto.nome ? removerGradeDoNome(produto.nome).substring(0, 250) : '',
+          sh_sku: produto.id ? produto.id.toString() : '',
+          sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? Math.min(Number.MAX_SAFE_INTEGER, parseInt(produto.estoque)) : 0,
+          sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : 'Não informado',
+        };
+      });
 
       produtosFormatados = [...produtosFormatados, ...produtosProcessados];
       page = response.data.meta.page.next || 0;
