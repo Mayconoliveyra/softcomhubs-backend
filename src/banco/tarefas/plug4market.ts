@@ -130,7 +130,8 @@ const sincronizarProdutos = () => {
 
       // Processa cada empresa em paralelo
       await Promise.all(
-        Object.entries(produtosPorEmpresa).map(([empresaId, produtosEmpresa]) =>
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        Object.entries(produtosPorEmpresa).map(([_, produtosEmpresa]) =>
           // Para cada empresa, executa os produtos com delay escalonado (único para cada grupo)
           Promise.all(
             produtosEmpresa.map((produto, index) =>
