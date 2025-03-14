@@ -171,7 +171,7 @@ const sincronizarProdutos = () => {
 const sincronizarTokens = () => {
   // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
   // Executa a cada 3 minutos
-  schedule.scheduleJob('*/1 * * * *', async () => {
+  schedule.scheduleJob('*/3 * * * *', async () => {
     if (emExecucaoTokens) {
       Util.Log.warn(`[SH] | Tokens | Tarefa de sincronização de tokens já está em execução.`);
       return;

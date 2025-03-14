@@ -46,9 +46,6 @@ export interface IProdutoSinc {
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
 
-const LIMITE_REQUISICOES_POR_EMPRESA = 60;
-const INTERVALO_MINUTOS = 1;
-
 const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
   try {
     const camposAtualizar: Partial<IProdutoSinc> = {};
@@ -94,7 +91,9 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
 };
 
 const sincronizarProdutos = () => {
-  schedule.scheduleJob(`*/${INTERVALO_MINUTOS} * * * *`, async () => {
+  // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
+  // Executa a cada 3 minutos
+  schedule.scheduleJob(`*/3 * * * *`, async () => {
     if (emExecucaoProdutos) {
       Util.Log.warn('[P4M] | Produtos | Sincronização já em execução.');
       return;
@@ -102,41 +101,65 @@ const sincronizarProdutos = () => {
     emExecucaoProdutos = true;
 
     try {
-      const produtos = await Knex(ETableNames.vw_p4m_produtos_sinc).whereRaw(
-        "CONVERT(status_envio USING utf8mb4) COLLATE utf8mb4_unicode_ci IN ('CADASTRAR', 'ATUALIZAR')",
-      );
+      const produtosRaw = await Knex.raw(`
+        SELECT *
+        FROM (
+          SELECT 
+            *,
+            ROW_NUMBER() OVER (PARTITION BY empresa_id ORDER BY prox_sinc_p4m ASC) AS rn
+          FROM ${ETableNames.vw_p4m_produtos_sinc}
+          WHERE CONVERT(status_envio USING utf8mb4) COLLATE utf8mb4_unicode_ci IN ('CADASTRAR', 'ATUALIZAR')
+        ) AS sub
+        WHERE rn <= 100
+        ORDER BY prox_sinc_p4m ASC
+      `);
 
+      const produtos = (produtosRaw[0] || produtosRaw.rows || produtosRaw) as IProdutoSinc[];
       if (!produtos.length) {
-        emExecucaoProdutos = false;
         return;
       }
 
-      const empresasMap = new Map<string, { token: string; produtos: IProdutoSinc[] }>();
-
-      for (const produto of produtos) {
-        if (!empresasMap.has(produto.empresa_id)) {
-          empresasMap.set(produto.empresa_id, { token: produto.pm4_token, produtos: [] });
+      // Agrupa os produtos por empresa
+      const produtosPorEmpresa = produtos.reduce((acc: Record<string, IProdutoSinc[]>, produto: IProdutoSinc) => {
+        if (!acc[produto.empresa_id]) {
+          acc[produto.empresa_id] = [];
         }
-        empresasMap.get(produto.empresa_id)?.produtos.push(produto);
-      }
+        acc[produto.empresa_id].push(produto);
+        return acc;
+      }, {} as Record<string, IProdutoSinc[]>);
 
-      for (const [empresaId, { token, produtos }] of empresasMap.entries()) {
-        const produtosLimitados = produtos.slice(0, LIMITE_REQUISICOES_POR_EMPRESA);
+      // Processa cada empresa em paralelo
+      await Promise.all(
+        Object.entries(produtosPorEmpresa).map(([empresaId, produtosEmpresa]) =>
+          // Para cada empresa, executa os produtos com delay escalonado (único para cada grupo)
+          Promise.all(
+            produtosEmpresa.map((produto, index) =>
+              new Promise((resolve) => setTimeout(resolve, index * 1000))
+                .then(() => Servicos.Plug4market.cadastrarOuAtualizarProduto(produto))
+                .then(async (resultado) => {
+                  if (resultado?.sucesso) {
+                    await atualizarProdutoP4M(produto, resultado.acao);
+                    await Knex(ETableNames.produtos)
+                      .where('uuid', produto.uuid)
+                      .update({
+                        prox_sinc_p4m: Util.DataHora.gerarTimestampMM(3, 5), // Entre 3 e 5 minutos
+                      });
+                  } else {
+                    const proxSinc = Util.DataHora.getErroTentativaMM(produto.prox_sinc_p4m);
+                    const tentativa = proxSinc * 10;
+                    const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
 
-        await Promise.all(
-          produtosLimitados.map((produto, index) =>
-            new Promise((resolve) => setTimeout(resolve, index * 1000)) // Envia um a cada 1s
-              .then(() => Servicos.Plug4market.cadastrarOuAtualizarProduto(produto))
-              .then(async (resultado) => {
-                if (resultado?.sucesso) {
-                  await atualizarProdutoP4M(produto, resultado.acao);
-                } else {
-                  Util.Log.error(`[P4M] | Produto | Erro | Ação: ${resultado?.acao} | Produto: ${produto.uuid}`, resultado);
-                }
-              }),
+                    await Knex(ETableNames.produtos)
+                      .where('uuid', produto.uuid)
+                      .update({ prox_sinc_p4m: Util.DataHora.gerarTimestampMM(tentativa || 40, tentativa || 40, novaTentativa) });
+
+                    Util.Log.error(`[P4M] | Produto | Erro ao sincronizar produto | Tentativa: ${novaTentativa} reagendado | Produto: ${produto.uuid}`);
+                  }
+                }),
+            ),
           ),
-        );
-      }
+        ),
+      );
     } catch (error) {
       Util.Log.error('[P4M] | Erro ao sincronizar produtos', error);
     } finally {
@@ -148,7 +171,7 @@ const sincronizarProdutos = () => {
 const sincronizarTokens = () => {
   // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
   // Executa a cada 3 minutos
-  schedule.scheduleJob('*/1 * * * *', async () => {
+  schedule.scheduleJob('*/3 * * * *', async () => {
     if (emExecucaoTokens) {
       Util.Log.warn(`[P4M] | Tokens | Tarefa de sincronização de tokens já está em execução.`);
       return;
