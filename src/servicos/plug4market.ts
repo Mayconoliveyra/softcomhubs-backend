@@ -6,6 +6,23 @@ import { Util } from '../util';
 
 const URL_BASE_P4M = 'https://api.plug4market.com.br';
 
+interface IProdutoP4m {
+  description: string; // Descrição do Produto
+  height: number; // Altura (em centimetros).
+  length: number; // Comprimento (em centimetros).
+  name: string; // Nome do Produto.
+  price: number; // Preço de Produto.
+  productId: string; // Código principal do produto (pai)
+  productName: string; // Nome do principal do Produto (pai)
+  salesChannels: []; // Canais de venda (marketsplaces) onde sera publicado o produto.
+  sku: string; // Código do produto
+  stock: number; // Quantidade do produto em estoque.
+  weight: number; // Peso do Produto (em gramas).
+  width: number; // Largura (em centimetros).
+  brand: string; // Marca do Produto.
+  active: boolean; // Define se o produto está habilitado ou não para venda.
+}
+
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
 const TIMEOUT_P4M = 30000; // 30 segundos
 const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
@@ -48,9 +65,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
     const url = ehAtualizar ? `${URL_BASE_P4M}/products/${produto.sh_sku}` : `${URL_BASE_P4M}/products`;
     const metodo = ehAtualizar ? 'put' : 'post';
 
-    const data: any = {
-      productId: produto.sh_produto_id,
-    };
+    const data: Partial<IProdutoP4m> = {};
 
     // Quando está cadastrando, seta os valores padrões obrigatórios
     if (!ehAtualizar) {
@@ -62,6 +77,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.width = 1.234567;
       data.active = false; // Cadastra inativo como padrão
 
+      data.productId = produto.sh_produto_id;
       data.sku = produto.sh_sku;
       data.name = produto.sh_nome;
       data.price = produto.sh_preco;
@@ -69,6 +85,8 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.brand = produto.sh_marca;
       data.productName = produto.sh_nome_formatado;
     } else {
+      data.productId = produto.p4m_produto_id as string;
+
       // Se está sendo atualizado, atualiza apenas os campos necessários
       if (produto.dif_preco) data.price = produto.sh_preco;
       if (produto.dif_estoque) data.stock = produto.sh_estoque;
