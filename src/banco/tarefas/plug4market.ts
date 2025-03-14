@@ -154,7 +154,10 @@ const sincronizarProdutos = () => {
                       .where('uuid', produto.uuid)
                       .update({ prox_sinc_p4m: Util.DataHora.gerarTimestampMM(tentativa || 40, tentativa || 40, novaTentativa) });
 
-                    Util.Log.error(`[P4M] | Produto | Erro ao sincronizar produto | Tentativa: ${novaTentativa} reagendado | Produto: ${produto.uuid}`);
+                    Util.Log.error(
+                      `[P4M] | Produto | Erro ao sincronizar produto | Tentativa: ${novaTentativa} reagendado | Produto: ${produto.uuid}`,
+                      resultado.erro,
+                    );
                   }
                 }),
             ),
