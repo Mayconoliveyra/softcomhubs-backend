@@ -169,7 +169,7 @@ const buscarProdutos = async (
           uuid: Util.UuidV4.gerar(),
           empresa_id,
           sh_nome: produto.nome ? produto.nome.substring(0, 250) : '',
-          sh_preco: preco || 1234567,
+          sh_preco: preco || 12345.67,
           sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
           sh_nome_formatado: produto.nome ? removerGradeDoNome(produto.nome).substring(0, 250) : '',
           sh_sku: produto.id ? produto.id.toString() : '',
