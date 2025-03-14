@@ -82,7 +82,7 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
 
     await Knex(ETableNames.produtos).where({ uuid: produto.uuid }).update(camposAtualizar);
 
-    Util.Log.info(`[P4M] | Produto | Sucesso ao atualizar produto | Ação: ${acao} | Produto: ${produto.uuid}`);
+    Util.Log.info(`[P4M] | Produto | Sucesso ao ${acao === 'CADASTRAR' ? 'cadastrar' : 'atualizar'} produto | Ação: ${acao} | Produto: ${produto.uuid}`);
     return true;
   } catch (error) {
     Util.Log.error(`[P4M] | Produto | Erro ao atualizar produto | Ação: ${acao} | Produto: ${produto.uuid}`, error);
