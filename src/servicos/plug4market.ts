@@ -111,7 +111,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       return {
         sucesso: false,
         acao: acao,
-        erro: JSON.stringify({ mensagem: 'response.status diferente de 200 e 2001' }),
+        erro: JSON.stringify({ mensagem: 'response.status diferente de 200 e 201' }),
         status: 500,
         uuid: produto.uuid,
       };
