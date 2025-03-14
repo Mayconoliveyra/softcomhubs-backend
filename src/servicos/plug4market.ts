@@ -6,8 +6,9 @@ import { Util } from '../util';
 
 const URL_BASE_P4M = 'https://api.plug4market.com.br';
 
-// !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO A TAREFA "selfHost.sincronizarTokens". !!!
-const TIMEOUT_P4M = 120000; // 2 minutos
+// !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
+const TIMEOUT_P4M = 30000; // 30 segundos
+const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
 
 const renovarToken = async (refreshToken: string) => {
   try {
@@ -16,7 +17,7 @@ const renovarToken = async (refreshToken: string) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: TIMEOUT_P4M,
+      timeout: TIMEOUT_P4M_TOKEN,
     });
 
     if (!response.data?.accessToken || !response.data?.refreshToken) {
@@ -102,8 +103,20 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 
     // Se tiver tentando cadastrar um produto que já tem o SKU cadastrado vai ser retornado mensagem 'Produto não atualizado'.
     // Nessa situação vou tratar como sucesso e apenas seta as colunas de sincronizado p4m_
-    if (!ehAtualizar && axiosError.response?.data?.error_messages?.[0]?.message?.[0]?.message == 'Produto não atualizado') {
-      Util.Log.warn(`[P4M] | Produto | Produto já cadastrado, realizado apenas vinculação. | Ação: ${acao} | Produto: ${produto.uuid}`);
+
+    // Quando tenta cadastrar um produto e já tinha cadastro.
+    const produtoNaoAtualizado = 'Produto não atualizado';
+    // Quando tenta cadastrar um produto ja tinha cadastrado, mas o "productId" é diferente do que ta sendo enviado. Normalmente vai acontece quando agrupa o produto na p4m.
+    const produtoRelacionadoOutroProdutoId = 'Esse produto já existe e está relacionado com outro ID Produto';
+    if (
+      !ehAtualizar &&
+      (axiosError.response?.data?.error_messages?.[0]?.message?.[0]?.message == produtoNaoAtualizado ||
+        axiosError.response?.data?.error_messages?.[0]?.message?.[0]?.message == produtoRelacionadoOutroProdutoId)
+    ) {
+      Util.Log.warn(
+        `[P4M] | Produto | Produto já cadastrado, realizado apenas vinculação. | Ação: ${acao} | Produto: ${produto.uuid}`,
+        JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
+      );
       return { sucesso: true, acao: acao, uuid: produto.uuid };
     }
 

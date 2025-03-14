@@ -90,10 +90,35 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
   }
 };
 
+const atualizarProdutosBatch = async (produtos: IProdutoSinc[]) => {
+  if (produtos.length === 0) {
+    return;
+  }
+
+  const updates = produtos.map((produto) => ({
+    uuid: produto.uuid,
+    prox_sinc_p4m: Util.DataHora.gerarTimestampMM(3, 5),
+  }));
+
+  const caseStatement = updates.map((u) => `WHEN '${u.uuid}' THEN ${u.prox_sinc_p4m}`).join(' ');
+
+  const uuids = updates.map((u) => `'${u.uuid}'`).join(',');
+
+  const query = `
+    UPDATE ${ETableNames.produtos}
+    SET prox_sinc_p4m = CASE uuid
+      ${caseStatement}
+    END
+    WHERE uuid IN (${uuids});
+  `;
+
+  await Knex.raw(query);
+};
+
 const sincronizarProdutos = () => {
-  // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
-  // Executa a cada 3 minutos
-  schedule.scheduleJob(`*/3 * * * *`, async () => {
+  // !! ATENÇÃO, NÃO ALTERAR ESSES 1 MINUTO. !!
+  // Executa a cada 1 minuto
+  schedule.scheduleJob(`*/1 * * * *`, async () => {
     if (emExecucaoProdutos) {
       Util.Log.warn('[P4M] | Produtos | Sincronização já em execução.');
       return;
@@ -105,12 +130,12 @@ const sincronizarProdutos = () => {
         SELECT *
         FROM (
           SELECT 
-            *,
+            * ,
             ROW_NUMBER() OVER (PARTITION BY empresa_id ORDER BY prox_sinc_p4m ASC) AS rn
           FROM ${ETableNames.vw_p4m_produtos_sinc}
           WHERE CONVERT(status_envio USING utf8mb4) COLLATE utf8mb4_unicode_ci IN ('CADASTRAR', 'ATUALIZAR')
         ) AS sub
-        WHERE rn <= 100
+        WHERE rn <= 90
         ORDER BY prox_sinc_p4m ASC
       `);
 
@@ -128,23 +153,20 @@ const sincronizarProdutos = () => {
         return acc;
       }, {} as Record<string, IProdutoSinc[]>);
 
+      // Lista para armazenar produtos bem-sucedidos e atualizar em lote
+      const produtosSincronizados: IProdutoSinc[] = [];
+
       // Processa cada empresa em paralelo
       await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         Object.entries(produtosPorEmpresa).map(([_, produtosEmpresa]) =>
-          // Para cada empresa, executa os produtos com delay escalonado (único para cada grupo)
           Promise.all(
             produtosEmpresa.map((produto, index) =>
-              new Promise((resolve) => setTimeout(resolve, index * 1000))
+              new Promise((resolve) => setTimeout(resolve, index * 200))
                 .then(() => Servicos.Plug4market.cadastrarOuAtualizarProduto(produto))
                 .then(async (resultado) => {
                   if (resultado?.sucesso) {
                     await atualizarProdutoP4M(produto, resultado.acao);
-                    await Knex(ETableNames.produtos)
-                      .where('uuid', produto.uuid)
-                      .update({
-                        prox_sinc_p4m: Util.DataHora.gerarTimestampMM(3, 5), // Entre 3 e 5 minutos
-                      });
+                    produtosSincronizados.push(produto); // Acumula produto para atualizar em lote depois
                   } else {
                     const proxSinc = Util.DataHora.getErroTentativaMM(produto.prox_sinc_p4m);
                     const tentativa = proxSinc * 10;
@@ -164,6 +186,11 @@ const sincronizarProdutos = () => {
           ),
         ),
       );
+
+      // Faz o batch update dos produtos sincronizados
+      if (produtosSincronizados.length > 0) {
+        await atualizarProdutosBatch(produtosSincronizados);
+      }
     } catch (error) {
       Util.Log.error('[P4M] | Erro ao sincronizar produtos', error);
     } finally {
