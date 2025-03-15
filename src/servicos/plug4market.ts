@@ -354,7 +354,7 @@ const obterDetalhesPedido = async (token: string, pedidoId: string) => {
 
 const tratarPedido = (pedido: IPedidoP4MResponse): Partial<IPedido> => {
   return {
-    id_p4m: truncarTexto(pedido.id, 255),
+    id_p4m: pedido.id,
 
     id_pedido_canal_venda: truncarTexto(pedido.saleChannelOrderId, 255),
     canal_venda_nome: truncarTexto(pedido.saleChannelName, 255),
@@ -384,10 +384,10 @@ const tratarPedido = (pedido: IPedidoP4MResponse): Partial<IPedido> => {
     entrega_numero: truncarTexto(pedido.shipping.streetNumber, 255),
     entrega_cep: truncarTexto(pedido.shipping.zipCode, 255),
 
-    estimativa_entrega: pedido.estimatedDeliveredAt || null,
-    prazo_maximo_envio: pedido.estimatedHandlingLimit || null,
+    estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt) : null,
+    prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit) : null,
 
-    criado_canal_venda: pedido.saleChannelCreated || null,
+    criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated) : null,
     observacao: truncarTexto(pedido.note, 255),
 
     custo_envio: Number(pedido.shippingCost?.toFixed(4)) || 0,
@@ -397,8 +397,35 @@ const tratarPedido = (pedido: IPedidoP4MResponse): Partial<IPedido> => {
   };
 };
 
+const confirmarPedido = async (token: string, id_p4m: string, uuidPedido: string) => {
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+
+    const data = JSON.stringify({ orderIdStore: uuidPedido });
+
+    const response = await axios.post(`${URL_BASE_P4M}/orders/${id_p4m}/confirm`, data, {
+      headers,
+      timeout: TIMEOUT_P4M,
+    });
+
+    if (response.status === 200 || response.status === 201) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    Util.Log.error(`[P4M] | Pedido | Erro ao confirmar pedido | Pedido: ${id_p4m}`, axiosError);
+    return false;
+  }
+};
+
 export const Plug4market = {
   renovarToken,
   cadastrarOuAtualizarProduto,
   obterPedidoPlug4Market,
+  confirmarPedido,
 };

@@ -15,6 +15,8 @@ interface IEmpresaTokenSinc {
   pm4_token_exp_datetime: string;
   prox_sinc_p4m_token: number;
   prox_sinc_p4m_token_datetime: string;
+  prox_sinc_p4m_pedidos: number;
+  prox_sinc_p4m_pedidos_datetime: string;
   token_valido: boolean;
 }
 
@@ -166,6 +168,7 @@ const sincronizarProdutos = () => {
 
       // Processa cada empresa em paralelo
       await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         Object.entries(produtosPorEmpresa).map(([_, produtosEmpresa]) =>
           Promise.all(
             produtosEmpresa.map((produto, index) =>
@@ -304,12 +307,61 @@ const sincronizarPedidos = () => {
         empresas.map(async (empresa) => {
           const resultado = await Servicos.Plug4market.obterPedidoPlug4Market(empresa.pm4_token);
 
-          if (resultado.sucesso && resultado.pedido) {
-            console.log(resultado);
-            /* await Knex(ETableNames.pedidos).insert(resultado.pedido); */
-            Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido ID: ${resultado.pedido.id_pedido_canal_venda}`);
+          if (resultado.sucesso) {
+            // Quando não tem pedido para ser consultado
+            if (!resultado.pedido) {
+              Util.Log.info(`[P4M] | Pedidos | Nenhum pedido encontrado | Empresa: ${empresa.uuid}`);
+              return;
+            }
+
+            const pedidoExiste = await Knex(ETableNames.pedidos).where('id_p4m', resultado.pedido.id_p4m).andWhere('empresa_id', empresa.uuid).first();
+            if (!pedidoExiste) {
+              const novoUuidPedido = Util.UuidV4.gerar();
+
+              await Knex(ETableNames.pedidos).insert({ uuid: novoUuidPedido, empresa_id: empresa.uuid, ...resultado.pedido });
+
+              const resultadoConfirmar = await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, resultado.pedido.id_p4m as string, novoUuidPedido);
+              if (resultadoConfirmar) {
+                Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido: ${resultado.pedido.id_p4m} | Empresa: ${empresa.uuid}`);
+              } else {
+                await Knex(ETableNames.pedidos).delete().where(novoUuidPedido);
+                Util.Log.error(`[P4M] | Pedidos | Erro ao confirmar pedido, nada feito... | Pedido: ${resultado.pedido.id_p4m} | Empresa: ${empresa.uuid}`);
+              }
+            } else {
+              await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, resultado.pedido.id_p4m as string, pedidoExiste.uuid);
+              Util.Log.warn(`[P4M] | Pedidos | Pedido já existe, ignorando... | Pedido: ${resultado.pedido.id_p4m} | Empresa: ${empresa.uuid}`);
+            }
+
+            await Knex(ETableNames.empresas)
+              .where('uuid', empresa.uuid)
+              .update({
+                prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 3), // entre 2 e 3m
+              });
           } else {
-            Util.Log.error(`[P4M] | Pedidos | Erro ao sincronizar pedido | Empresa: ${empresa.uuid}`, resultado.erro);
+            // Obtém a tentativa de erro anterior a partir do timestamp armazenado.
+            // Se for um erro identificado (01, 02 ou 03), retorna o número da tentativa (1, 2 ou 3).
+            // Caso contrário, retorna 0.
+            const proxSinc = Util.DataHora.getErroTentativaMM(empresa.prox_sinc_p4m_pedidos);
+
+            // Define o tempo de espera com base no número da tentativa de erro anterior.
+            // Cada tentativa aumenta o tempo de re-tentativa em 5 minutos (1 → 5min, 2 → 10min, 3 → 15min).
+            // Se não houver erro anterior, `tentativa` será 0.
+            const tentativa = proxSinc * 5;
+
+            // Incrementa quantidade de tentativas
+            const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
+
+            await Knex(ETableNames.empresas)
+              .where('uuid', empresa.uuid)
+              .update({
+                // Define um novo timestamp para a próxima sincronização.
+                // Se houve erro antes, ajusta o tempo de re-tentativa com base na `tentativa`.
+                // Se não houve erro, usa um intervalo padrão entre 50 e 60 minutos.
+                // O terceiro parâmetro (`proxSinc || 0`) mantém o controle do número de tentativas de erro.
+                prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(tentativa || 20, tentativa || 20, novaTentativa),
+              });
+
+            Util.Log.error(`[P4M] | Pedidos | Erro ao sincronizar pedido | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`, resultado.erro);
           }
         }),
       );

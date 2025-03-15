@@ -1,7 +1,8 @@
 export interface IPedido {
   uuid: string;
+  empresa_id: string;
 
-  id_p4m: string | null; // orderId - UUID do pedido no Plug4Market
+  id_p4m: string; // orderId - UUID do pedido no Plug4Market
 
   id_pedido_canal_venda: string | null; // saleChannelOrderId - ID do pedido no canal de venda
   canal_venda_nome: string | null; // saleChannelName - Canal de venda

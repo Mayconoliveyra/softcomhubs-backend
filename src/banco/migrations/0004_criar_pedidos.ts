@@ -10,7 +10,7 @@ export async function up(knex: Knex) {
       table.uuid('uuid').primary().index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
       table.uuid('empresa_id').notNullable().references('uuid').inTable(ETableNames.empresas);
 
-      table.string('id_p4m', 255).notNullable().index();
+      table.string('id_p4m', 50).unique().notNullable();
 
       table.string('id_pedido_canal_venda', 255).nullable();
       table.string('canal_venda_nome', 255).nullable();
