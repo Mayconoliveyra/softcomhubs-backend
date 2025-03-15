@@ -11,24 +11,28 @@ if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-const date = DataHora.obterDataAtual('DD-MM-YYYY');
+// Variável para armazenar a data atual
+let currentDate = DataHora.obterDataAtual('DD-MM-YYYY');
 
-const logFile = path.join(logDir, `log-${date}.log`);
+// Função para obter o transporte de arquivo atualizado
+const getLogFileTransport = () => {
+  const logFile = path.join(logDir, `log-${currentDate}.log`);
+  return new winston.transports.File({ filename: logFile, level: 'info' });
+};
 
-const fileTransport = new winston.transports.File({ filename: logFile, level: 'info' });
+// Criação do transporte inicial
+let fileTransport = getLogFileTransport();
 
 const formatAxiosError = (error: AxiosError) => {
   let parsedRequestBody;
   let responseData;
 
-  // Protege contra erro ao converter JSON do requestBody
   try {
     parsedRequestBody = error.config?.data ? JSON.parse(error.config.data) : {};
   } catch (parseError) {
     parsedRequestBody = { error: 'Erro ao converter requestBody para JSON' };
   }
 
-  // Protege contra erro ao acessar `error.response?.data`
   try {
     responseData = error.response?.data ? JSON.stringify(error.response.data, null, 2) : 'Nenhum dado retornado';
   } catch (parseError) {
@@ -41,8 +45,8 @@ const formatAxiosError = (error: AxiosError) => {
     method: error?.config?.method?.toUpperCase() || 'Método desconhecido',
     url: error?.config?.url || 'URL desconhecida',
     queryParams: error?.config?.params || 'Sem parâmetros',
-    requestBody: parsedRequestBody, // Mostra o JSON enviado
-    responseData, // Agora protegido contra erros
+    requestBody: parsedRequestBody,
+    responseData,
     headers: error?.response?.headers || 'Sem headers',
     userAgent: error?.config?.headers?.['User-Agent'] || 'Indefinido',
     requestTime: error?.config?.timeout ? `${error?.config?.timeout}ms` : 'Indefinido',
@@ -65,19 +69,28 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console(), fileTransport],
 });
 
-const customLogger = (level: string, message: string, additional?: any) => {
-  let formattedMessage = message;
+// Função para verificar se a data mudou e atualizar o arquivo de log
+const checkAndRotateLogFile = () => {
+  const newDate = DataHora.obterDataAtual('DD-MM-YYYY');
+  if (newDate !== currentDate) {
+    currentDate = newDate;
+    fileTransport = getLogFileTransport();
+    logger.clear(); // Remove transporte antigo
+    logger.add(fileTransport); // Adiciona novo transporte
+  }
+};
 
+const customLogger = (level: string, message: string, additional?: any) => {
+  checkAndRotateLogFile(); // Checa se precisa trocar o arquivo de log
+
+  let formattedMessage = message;
   if (additional !== undefined) {
     let additionalFormatted;
-
-    // Se for erro do Axios, filtra os dados relevantes
     if (additional.isAxiosError) {
       additionalFormatted = JSON.stringify(formatAxiosError(additional), null, 2);
     } else {
       additionalFormatted = typeof additional === 'object' ? JSON.stringify(additional, null, 2) : String(additional);
     }
-
     formattedMessage += `\n${additionalFormatted}`;
   }
 
