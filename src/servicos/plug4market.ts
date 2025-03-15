@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 
+import { IPedido } from '../banco/models/pedido';
 import { IProdutoSinc } from '../banco/tarefas/plug4market';
 
 import { Util } from '../util';
@@ -23,7 +24,7 @@ interface IProdutoP4m {
   active: boolean; // Define se o produto está habilitado ou não para venda.
 }
 
-interface IPedidoP4M {
+interface IPedidoP4MCabecalho {
   id: string;
   saleChannelOrderId: string;
   orderIdStore: string;
@@ -35,9 +36,161 @@ interface IPedidoP4M {
   note?: string;
 }
 
+// Interface para o objeto Billing (Endereço e informações de cobrança)
+export interface Billing {
+  city: string; // Nome da cidade do endereço de cobrança
+  country: string; // País do endereço de cobrança
+  dateOfBirth: string; // <date-time> - Deprecated
+  district: string; // Bairro do endereço de cobrança
+  documentId: string; // CPF ou CNPJ do cliente
+  email: string; // E-mail do cliente
+  gender: string; // Deprecated
+  name: string; // Nome do cliente
+  phone: string; // Telefone de cobranças
+  state: string; // Estado (UF) do endereço de cobrança
+  street: string; // Logradouro do endereço de cobrança
+  streetComplement: string; // Complemento do endereço de cobrança
+  streetNumber: string; // Número do endereço de cobrança
+  taxPayer: boolean; // Flag que sinaliza se o cliente é pagador de imposto
+  zipCode: string; // CEP do endereço de cobrança
+}
+
+// Interface para o objeto Invoice (Nota fiscal do pedido)
+export interface Invoice {
+  nfeAccessKey: string; // Chave de acesso da nota fiscal
+  nfeDate: string; // <date-time> - Data da emissão da nota fiscal
+  nfeNumber: string; // Número da nota fiscal
+  nfeSerialNumber: string; // Número de série da nota fiscal
+  xml: string; // XML da nota fiscal
+}
+
+// Interface para cada item do pedido (OrderItem)
+export interface OrderItem {
+  customId: string; // ID de confirmação enviado pelo cliente
+  discount: number; // Valor do desconto dado no produto
+  freight: number; // Valor do frete calculado
+  mainImage: string; // Imagem principal do produto
+  name: string; // Nome do produto pedido
+  orderItemId: string; // Id do item pedido no canal de venda
+  originalPrice: number; // Preço sem desconto
+  originalTotal: number; // Valor total com os valores integrais
+  price: number; // Valor do pedido
+  productId: string; // Id do produto dado pelo comerciante
+  quantity: number; // Quantidade de itens pedidos
+  salePrice: number; // Deprecated - Valor que foi vendido
+  sku: string; // Sku do produto
+  total: number; // Valor total de todos os pedidos (por item)
+  unitDiscount: number; // Desconto por unidade
+  orderType: number; // Identifica o tipo do pedido (Default: 0, onde 0 = Pedidos Convencionais, 1 = Pedido fulfillment)
+  originalObjectJson: string; // Deprecated
+}
+
+// Interface para cada método de pagamento (PaymentMethod)
+export interface PaymentMethod {
+  authorization: string;
+  cardBrand: string; // Bandeira do cartão
+  installments: number; // Número de parcelas
+  method: string; // Método de pagamento (a descrição varia conforme o canal de venda)
+  sequential: number;
+  value: number; // Valor pago
+}
+
+// Interface para o objeto Shipment (Informações de rastreamento)
+export interface Shipment {
+  shipmentId: string; // ID interno do código de rastreio
+  shippingName: string; // Nome da transportadora
+  total: number; // Valor do envio
+  trackingNumber: string; // Código de rastreamento
+}
+
+// Interface para o objeto Shipping (Endereço de entrega do pedido)
+export interface Shipping {
+  city: string; // Cidade do endereço de entrega
+  country: string; // País (sigla) do endereço de entrega
+  district: string; // Bairro do endereço de entrega
+  phone: string; // Número do destinatário
+  recipientName: string; // Nome do destinatário
+  state: string; // Estado (UF) do endereço de entrega
+  street: string; // Logradouro de destinatário
+  streetComplement: string; // Complemento do endereço de entrega
+  streetNumber: string; // Número do endereço de entrega
+  zipCode: string; // CEP do endereço de entrega
+  shippingCost: number; // Valor do frete
+}
+
+// Interface para cada mudança de status (StatusUpdateDate)
+export interface StatusUpdateDate {
+  status: 'NEW' | 'SHIPPED' | 'CREATED' | 'APPROVED' | 'INVOICED' | 'CANCELED' | 'COMPLETED';
+  updateDate: string; // <date-time>
+}
+
+// Interface principal que representa o pedido completo
+export interface IPedidoP4MResponse {
+  // Informações de cobrança
+  billing: Billing;
+
+  // Datas do pedido
+  createdAt: string; // <date-time> - Data de criação do pedido
+  deliveredAt: string; // <date-time> - Data em que o pedido foi despachado
+  estimatedDeliveredAt: string; // <date-time> - Data estimada para o envio do pedido
+  estimatedHandlingLimit: string; // <date-time> - Prazo máximo para o vendedor despachar o item
+
+  // Identificadores e status
+  id: string; // uuid do pedido no Plug4Market
+  integratedSaleChannelStatus: boolean; // Indica se o pedido já foi integrado com o canal de venda
+  interest: number; // Valor total dos juros
+
+  // Nota fiscal do pedido
+  invoice: Invoice;
+
+  // Identificadores do pedido
+  orderId: number; // ID interno do pedido
+  orderIdCustom: boolean; // Código secundário referente ao pedido no marketplace
+  orderIdSeller: string; // Deprecated - ID ou número do pedido na loja/ERP.
+  orderIdStore: string; // ID ou número do pedido na loja/ERP.
+
+  // Itens do pedido
+  orderItems: OrderItem[];
+
+  orderType: number;
+
+  // Métodos de pagamento do pedido
+  paymentMethods: PaymentMethod[];
+
+  // Dados do canal de venda
+  saleChannel: string;
+  saleChannelCreated: string; // <date-time> - Data da criação do pedido no canal de venda
+  saleChannelOrderId: string; // Id do pedido no canal de venda
+
+  // Informações de rastreamento
+  shipment: Shipment;
+
+  // Endereço de entrega do pedido
+  shipping: Shipping;
+
+  shippingCost: number;
+  // Status do pedido
+  status: 'NEW' | 'SHIPPED' | 'CREATED' | 'APPROVED' | 'INVOICED' | 'CANCELED' | 'COMPLETED';
+  statusUpdateDate: StatusUpdateDate[];
+
+  // Totais e datas
+  totalAmount: number; // Valor total do pedido
+  updatedAt: string; // <date-time> - Data da última alteração do pedido
+
+  // Outros campos
+  note: string | null; // Observações da traycommerce
+  totalCommission: number | null; // Valor de comissionamento do canal de vendas
+
+  saleChannelName: string;
+}
+
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
 const TIMEOUT_P4M = 30000; // 30 segundos
 const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
+
+const truncarTexto = (texto: string | null | undefined, limite: number) => {
+  return texto ? texto.substring(0, limite) : null;
+};
 
 const renovarToken = async (refreshToken: string) => {
   try {
@@ -164,7 +317,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 const obterPedidoPlug4Market = async (token: string) => {
   try {
     const headers = { Authorization: `Bearer ${token}` };
-    const response = await axios.get<{ data: IPedidoP4M[] }>(`${URL_BASE_P4M}/orders?_page=1&size=1&status=APPROVED&integratedStore=false`, {
+    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=1&size=1&status=APPROVED&integratedStore=true`, {
       headers,
       timeout: TIMEOUT_P4M,
     });
@@ -199,17 +352,48 @@ const obterDetalhesPedido = async (token: string, pedidoId: string) => {
   }
 };
 
-const tratarPedido = (pedido: any) => {
+const tratarPedido = (pedido: IPedidoP4MResponse): Partial<IPedido> => {
   return {
-    id: pedido.id,
-    id_pedido_loja: pedido.orderIdStore || null,
-    canal_venda: pedido.saleChannelOrderId || null,
-    tipo_pedido: pedido.orderType || 0,
-    valor_total: pedido.amount || 0,
-    criado_em: pedido.createdAt || null,
-    atualizado_em: pedido.updatedAt || null,
-    status: pedido.status || null,
-    observacao: pedido.note || null,
+    id_p4m: truncarTexto(pedido.id, 255),
+
+    id_pedido_canal_venda: truncarTexto(pedido.saleChannelOrderId, 255),
+    canal_venda_nome: truncarTexto(pedido.saleChannelName, 255),
+
+    cobranca_cidade: truncarTexto(pedido.billing.city, 255),
+    cobranca_pais: truncarTexto(pedido.billing.country, 255),
+    cobranca_bairro: truncarTexto(pedido.billing.district, 255),
+    cobranca_documento: truncarTexto(pedido.billing.documentId, 255),
+    cobranca_email: truncarTexto(pedido.billing.email, 255),
+    cobranca_nome: truncarTexto(pedido.billing.name, 255),
+    cobranca_telefone: truncarTexto(pedido.billing.phone, 255),
+    cobranca_estado: truncarTexto(pedido.billing.state, 255),
+    cobranca_rua: truncarTexto(pedido.billing.street, 255),
+    cobranca_complemento: truncarTexto(pedido.billing.streetComplement, 255),
+    cobranca_numero: truncarTexto(pedido.billing.streetNumber, 255),
+    cobranca_pagador_imposto: pedido.billing.taxPayer || false,
+    cobranca_cep: truncarTexto(pedido.billing.zipCode, 255),
+
+    entrega_cidade: truncarTexto(pedido.shipping.city, 255),
+    entrega_pais: truncarTexto(pedido.shipping.country, 255),
+    entrega_bairro: truncarTexto(pedido.shipping.district, 255),
+    entrega_telefone: truncarTexto(pedido.shipping.phone, 255),
+    entrega_nome_destinatario: truncarTexto(pedido.shipping.recipientName, 255),
+    entrega_estado: truncarTexto(pedido.shipping.state, 255),
+    entrega_rua: truncarTexto(pedido.shipping.street, 255),
+    entrega_complemento: truncarTexto(pedido.shipping.streetComplement, 255),
+    entrega_numero: truncarTexto(pedido.shipping.streetNumber, 255),
+    entrega_cep: truncarTexto(pedido.shipping.zipCode, 255),
+
+    estimativa_entrega: pedido.estimatedDeliveredAt || null,
+    prazo_maximo_envio: pedido.estimatedHandlingLimit || null,
+
+    criado_canal_venda: pedido.saleChannelCreated || null,
+    observacao: truncarTexto(pedido.note, 255),
+
+    custo_envio: Number(pedido.shippingCost?.toFixed(4)) || 0,
+    juros: Number(pedido.interest?.toFixed(4)) || 0,
+    comissao_total: Number(pedido.totalCommission?.toFixed(4)) || 0,
+    valor_total: Number(pedido.totalAmount?.toFixed(4)) || 0,
   };
 };
 

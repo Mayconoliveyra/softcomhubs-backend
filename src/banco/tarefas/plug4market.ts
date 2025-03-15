@@ -282,9 +282,9 @@ const sincronizarTokens = () => {
 };
 
 const sincronizarPedidos = () => {
-  // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
-  // Executa a cada 3 minutos
-  schedule.scheduleJob('*/3 * * * *', async () => {
+  // !! ATENÇÃO, NÃO ALTERAR ESSE 1 MINUTO. !!
+  // Executa a cada 1 minuto
+  schedule.scheduleJob('*/1 * * * *', async () => {
     if (emExecucaoPedidos) {
       Util.Log.warn(`[P4M] | Pedidos | Tarefa de sincronização de pedidos já está em execução.`);
       return;
@@ -299,6 +299,20 @@ const sincronizarPedidos = () => {
         .andWhere('token_valido', '=', true)) as IEmpresaTokenSinc[];
 
       if (!empresas.length) return;
+
+      await Promise.all(
+        empresas.map(async (empresa) => {
+          const resultado = await Servicos.Plug4market.obterPedidoPlug4Market(empresa.pm4_token);
+
+          if (resultado.sucesso && resultado.pedido) {
+            console.log(resultado);
+            /* await Knex(ETableNames.pedidos).insert(resultado.pedido); */
+            Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido ID: ${resultado.pedido.id_pedido_canal_venda}`);
+          } else {
+            Util.Log.error(`[P4M] | Pedidos | Erro ao sincronizar pedido | Empresa: ${empresa.uuid}`, resultado.erro);
+          }
+        }),
+      );
     } catch (error) {
       Util.Log.warn(`[P4M] | Pedidos | Erro ao sincronizar pedidos.`, error);
     } finally {
