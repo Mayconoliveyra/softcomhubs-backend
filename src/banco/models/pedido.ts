@@ -26,17 +26,15 @@ export interface IPedido {
   id_interno: number; // orderId - ID interno do pedido
   codigo_secundario: boolean; // orderIdCustom - Código secundário referente ao pedido no marketplace
   id_pedido_loja: string; // orderIdStore - ID ou número do pedido na loja/ERP
-  /* itens_pedido: IOrderItem[]; // orderItems - Itens do pedido */
   tipo_pedido: number; // orderType - Identifica o tipo do pedido (0 = Convencional, 1 = Fulfillment)
-  /*   metodos_pagamento: IPaymentMethod[]; // paymentMethods - Métodos de pagamento do pedido */
   canal_venda: string; // saleChannel - Canal de venda
   criado_canal_venda: string; // saleChannelCreated - Data de criação do pedido no canal de venda
   id_pedido_canal_venda: string; // saleChannelOrderId - ID do pedido no canal de venda
 
-  rastreamento_id: string; // shipmentId - ID interno do código de rastreio
-  rastreamento_transportadora: string; // shippingName - Nome da transportadora
-  rastreamento_valor: number; // total - Valor do envio
-  rastreamento_codigo: string; // trackingNumber - Código de rastreamento
+  rastreamento_id: string; // shipment_shipmentId - ID interno do código de rastreio
+  rastreamento_transportadora: string; // shipment_shippingName - Nome da transportadora
+  rastreamento_valor: number; // shipment_total - Valor do envio
+  rastreamento_codigo: string; // shipment_trackingNumber - Código de rastreamento
 
   // Endereço de entrega do pedido
   entrega_cidade: string; // shipping_city - Cidade do endereço de entrega
