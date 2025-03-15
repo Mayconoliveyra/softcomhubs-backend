@@ -44,4 +44,7 @@ export interface IPedido {
   juros: number; // interest - Valor total dos juros
   comissao_total?: number; // totalCommission - Valor de comissionamento do canal de vendas
   valor_total: number; // totalAmount - Valor total do pedido
+
+  created_at: string;
+  updated_at?: string;
 }

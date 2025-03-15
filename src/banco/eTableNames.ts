@@ -3,6 +3,7 @@ export enum ETableNames {
   usuarios = 'usuarios',
   produtos = 'produtos',
   pedidos = 'pedidos',
+  pedido_itens = 'pedido_itens',
   vw_sh_empresas_tokens_renovar = 'vw_sh_empresas_tokens_renovar',
   vw_sh_produtos_sinc = 'vw_sh_produtos_sinc',
   vw_p4m_empresas_tokens_renovar = 'vw_p4m_empresas_tokens_renovar',
