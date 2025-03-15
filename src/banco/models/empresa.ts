@@ -29,8 +29,11 @@ export interface IEmpresa {
 
   prox_sinc_sh_token: number;
   prox_sinc_sh_produtos: number;
+  prox_sinc_sh_pedidos: number;
+
   prox_sinc_p4m_token: number;
   prox_sinc_p4m_produtos: number;
+  prox_sinc_p4m_pedidos: number;
 
   created_at: string;
   updated_at?: string;

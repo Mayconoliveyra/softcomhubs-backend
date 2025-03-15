@@ -15,7 +15,7 @@ interface IEmpresaTokenSinc {
   pm4_token_exp_datetime: string;
   prox_sinc_p4m_token: number;
   prox_sinc_p4m_token_datetime: string;
-  valido: boolean;
+  token_valido: boolean;
 }
 
 export interface IProdutoSinc {
@@ -281,9 +281,14 @@ const sincronizarPedidos = () => {
   // Executa a cada 3 minutos
   schedule.scheduleJob('*/3 * * * *', async () => {
     if (emExecucaoPedidos) {
-      Util.Log.warn(`[P4M] | Tokens | Tarefa de sincronização de tokens já está em execução.`);
+      Util.Log.warn(`[P4M] | Pedidos | Tarefa de sincronização de pedidos já está em execução.`);
       return;
     }
+
+    // Buscar todas as empresas que precisam de renovação
+    const empresas = (await Knex(ETableNames.vw_p4m_empresas_tokens_renovar).where('token_valido', '=', true)) as IEmpresaTokenSinc[];
+
+    if (!empresas.length) return;
 
     emExecucaoPedidos = true;
     try {
