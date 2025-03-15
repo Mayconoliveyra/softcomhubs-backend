@@ -9,11 +9,13 @@ export async function up(knex: Knex): Promise<void> {
     CREATE VIEW vw_p4m_empresas_tokens_renovar AS
     SELECT 
           uuid,
+          pm4_token,
           pm4_token_renovacao,
           pm4_token_exp,
           FROM_UNIXTIME(pm4_token_exp) AS pm4_token_exp_datetime,
           prox_sinc_p4m_token,
-          FROM_UNIXTIME(prox_sinc_p4m_token) AS prox_sinc_p4m_token_datetime
+          FROM_UNIXTIME(prox_sinc_p4m_token) AS prox_sinc_p4m_token_datetime,
+          ((pm4_token_exp) > UNIX_TIMESTAMP(NOW())) AS valido -- Indica se o token ainda está dentro da margem de validade
       FROM empresas
       WHERE 
           deleted_at IS NULL 

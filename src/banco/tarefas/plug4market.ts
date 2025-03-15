@@ -9,11 +9,13 @@ import { Knex } from '../knex';
 
 interface IEmpresaTokenSinc {
   uuid: string;
+  pm4_token: string;
   pm4_token_renovacao: string;
   pm4_token_exp: number;
   pm4_token_exp_datetime: string;
   prox_sinc_p4m_token: number;
   prox_sinc_p4m_token_datetime: string;
+  valido: boolean;
 }
 
 export interface IProdutoSinc {
@@ -45,6 +47,7 @@ export interface IProdutoSinc {
 
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
+let emExecucaoPedidos = false;
 
 const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
   try {
@@ -273,4 +276,33 @@ const sincronizarTokens = () => {
   });
 };
 
-export const Plug4market = { sincronizarProdutos, sincronizarTokens };
+const sincronizarPedidos = () => {
+  // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
+  // Executa a cada 3 minutos
+  schedule.scheduleJob('*/3 * * * *', async () => {
+    if (emExecucaoPedidos) {
+      Util.Log.warn(`[P4M] | Tokens | Tarefa de sincronização de tokens já está em execução.`);
+      return;
+    }
+
+    emExecucaoPedidos = true;
+    try {
+      const agora = Util.DataHora.obterTimestampAtual();
+      // !! SE FUTURAMENTE AUMENTAR A QUANTIDADE DE CLIENTES, APENAS AJUSTAR O LIMIT
+
+      // Buscar todas as empresas que precisam de renovação
+      const empresas = (await Knex(ETableNames.vw_p4m_empresas_tokens_renovar)
+        .where('prox_sinc_p4m_token', '<=', agora)
+        .orderBy('prox_sinc_p4m_token', 'asc')
+        .limit(5)) as IEmpresaTokenSinc[];
+
+      if (!empresas.length) return;
+    } catch (error) {
+      Util.Log.warn(`[P4M] | Tokens | Erro ao sincronizar tokens SelfHost.`, error);
+    } finally {
+      emExecucaoPedidos = false;
+    }
+  });
+};
+
+export const Plug4market = { sincronizarProdutos, sincronizarTokens, sincronizarPedidos };

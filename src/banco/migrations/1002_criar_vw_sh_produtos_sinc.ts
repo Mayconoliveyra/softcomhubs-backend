@@ -18,7 +18,7 @@ export async function up(knex: Knex): Promise<void> {
           FROM_UNIXTIME(prox_sinc_sh_produtos) AS prox_sinc_sh_produtos_datetime,
           sh_ultima_sinc_produtos,
           FROM_UNIXTIME(sh_ultima_sinc_produtos) AS sh_ultima_sinc_produtos_datetime,
-           ((sh_token_exp) > UNIX_TIMESTAMP(NOW())) AS valido -- Indica se o token ainda está dentro da margem
+           ((sh_token_exp) > UNIX_TIMESTAMP(NOW())) AS valido -- Indica se o token ainda está dentro da margem de validade
       FROM empresas
       WHERE 
           deleted_at IS NULL 

@@ -23,6 +23,18 @@ interface IProdutoP4m {
   active: boolean; // Define se o produto está habilitado ou não para venda.
 }
 
+interface IPedidoP4M {
+  id: string;
+  saleChannelOrderId: string;
+  orderIdStore: string;
+  status: string;
+  orderType: number;
+  amount: number;
+  createdAt: string;
+  updatedAt: string;
+  note?: string;
+}
+
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
 const TIMEOUT_P4M = 30000; // 30 segundos
 const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
@@ -149,7 +161,60 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
   }
 };
 
+const obterPedidoPlug4Market = async (token: string) => {
+  try {
+    const headers = { Authorization: `Bearer ${token}` };
+    const response = await axios.get<{ data: IPedidoP4M[] }>(`${URL_BASE_P4M}/orders?_page=1&size=1&status=APPROVED&integratedStore=false`, {
+      headers,
+      timeout: TIMEOUT_P4M,
+    });
+
+    const pedido = response.data?.data?.[0];
+    if (!pedido) {
+      // Vai ser retornado true porque não é um erro, apenas não tinha pedido para ser retornado...
+      // Então, sucesso vai ser true, mas o pedido vai ser null
+      return { sucesso: true, pedido: null, erro: 'Nenhum pedido encontrado' };
+    }
+
+    return await obterDetalhesPedido(token, pedido.id);
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    return { sucesso: false, pedido: null, erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }) };
+  }
+};
+
+const obterDetalhesPedido = async (token: string, pedidoId: string) => {
+  try {
+    const headers = { Authorization: `Bearer ${token}` };
+    const response = await axios.get(`${URL_BASE_P4M}/orders/${pedidoId}`, {
+      headers,
+      timeout: TIMEOUT_P4M,
+    });
+
+    const pedidoTratado = response?.data && response?.data.id ? tratarPedido(response.data) : null;
+    return { sucesso: true, pedido: pedidoTratado };
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    return { sucesso: false, pedido: null, erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }) };
+  }
+};
+
+const tratarPedido = (pedido: any) => {
+  return {
+    id: pedido.id,
+    id_pedido_loja: pedido.orderIdStore || null,
+    canal_venda: pedido.saleChannelOrderId || null,
+    tipo_pedido: pedido.orderType || 0,
+    valor_total: pedido.amount || 0,
+    criado_em: pedido.createdAt || null,
+    atualizado_em: pedido.updatedAt || null,
+    status: pedido.status || null,
+    observacao: pedido.note || null,
+  };
+};
+
 export const Plug4market = {
   renovarToken,
   cadastrarOuAtualizarProduto,
+  obterPedidoPlug4Market,
 };
