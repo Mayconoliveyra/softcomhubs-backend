@@ -305,6 +305,7 @@ const sincronizarPedidos = () => {
 
       await Promise.all(
         empresas.map(async (empresa) => {
+          // Consulta um pedido na plu4market
           const resultado = await Servicos.Plug4market.obterPedidoPlug4Market(empresa.pm4_token);
 
           if (resultado.sucesso) {
