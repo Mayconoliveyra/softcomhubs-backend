@@ -94,20 +94,21 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
 };
 
 const atualizarProdutosBatch = async (produtos: IProdutoSinc[]) => {
-  if (produtos.length === 0) {
-    return;
-  }
+  try {
+    if (produtos.length === 0) {
+      return;
+    }
 
-  const updates = produtos.map((produto) => ({
-    uuid: produto.uuid,
-    prox_sinc_p4m: Util.DataHora.gerarTimestampMM(3, 5),
-  }));
+    const updates = produtos.map((produto) => ({
+      uuid: produto.uuid,
+      prox_sinc_p4m: Util.DataHora.gerarTimestampMM(3, 5),
+    }));
 
-  const caseStatement = updates.map((u) => `WHEN '${u.uuid}' THEN ${u.prox_sinc_p4m}`).join(' ');
+    const caseStatement = updates.map((u) => `WHEN '${u.uuid}' THEN ${u.prox_sinc_p4m}`).join(' ');
 
-  const uuids = updates.map((u) => `'${u.uuid}'`).join(',');
+    const uuids = updates.map((u) => `'${u.uuid}'`).join(',');
 
-  const query = `
+    const query = `
     UPDATE ${ETableNames.produtos}
     SET prox_sinc_p4m = CASE uuid
       ${caseStatement}
@@ -115,7 +116,11 @@ const atualizarProdutosBatch = async (produtos: IProdutoSinc[]) => {
     WHERE uuid IN (${uuids});
   `;
 
-  await Knex.raw(query);
+    await Knex.raw(query);
+  } catch (error) {
+    Util.Log.error('Erro ao atualizar produtos em batch', error);
+    throw new Error('Erro ao atualizar produtos em batch');
+  }
 };
 
 const sincronizarProdutos = () => {
@@ -269,7 +274,7 @@ const sincronizarTokens = () => {
         }),
       );
     } catch (error) {
-      Util.Log.warn(`[P4M] | Tokens | Erro ao sincronizar tokens SelfHost.`, error);
+      Util.Log.warn(`[P4M] | Tokens | Erro ao sincronizar tokens.`, error);
     } finally {
       emExecucaoTokens = false;
     }
@@ -285,25 +290,17 @@ const sincronizarPedidos = () => {
       return;
     }
 
-    // Buscar todas as empresas que precisam de renovação
-    const empresas = (await Knex(ETableNames.vw_p4m_empresas_tokens_renovar).where('token_valido', '=', true)) as IEmpresaTokenSinc[];
-
-    if (!empresas.length) return;
-
     emExecucaoPedidos = true;
     try {
       const agora = Util.DataHora.obterTimestampAtual();
-      // !! SE FUTURAMENTE AUMENTAR A QUANTIDADE DE CLIENTES, APENAS AJUSTAR O LIMIT
 
-      // Buscar todas as empresas que precisam de renovação
       const empresas = (await Knex(ETableNames.vw_p4m_empresas_tokens_renovar)
-        .where('prox_sinc_p4m_token', '<=', agora)
-        .orderBy('prox_sinc_p4m_token', 'asc')
-        .limit(5)) as IEmpresaTokenSinc[];
+        .where('prox_sinc_p4m_pedidos', '<=', agora)
+        .andWhere('token_valido', '=', true)) as IEmpresaTokenSinc[];
 
       if (!empresas.length) return;
     } catch (error) {
-      Util.Log.warn(`[P4M] | Tokens | Erro ao sincronizar tokens SelfHost.`, error);
+      Util.Log.warn(`[P4M] | Pedidos | Erro ao sincronizar pedidos.`, error);
     } finally {
       emExecucaoPedidos = false;
     }
