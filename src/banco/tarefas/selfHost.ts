@@ -56,6 +56,7 @@ type IPedidoSinc = {
   cobranca_numero: string;
   cobranca_pagador_imposto: boolean;
   cobranca_cep: string;
+  cobranca_ibge: string;
   entrega_cidade: string;
   entrega_pais: string;
   entrega_bairro: string;
@@ -66,6 +67,7 @@ type IPedidoSinc = {
   entrega_complemento: string;
   entrega_numero: string;
   entrega_cep: string;
+  entrega_ibge: string;
   estimativa_entrega: string;
   prazo_maximo_envio: string;
   criado_canal_venda: string;
@@ -325,7 +327,7 @@ const sincronizarPedidos = () => {
         pedidos.map(async (pedido) => {
           const modeloCliente: IClienteCadastrarSH = {
             bairro: pedido.entrega_bairro || pedido.cobranca_bairro || '',
-            codigo_cidade: 1, // pendente
+            codigo_cidade:pedido.entrega_ibge?Number(pedido.entrega_ibge) || Number(pedido.cobranca_ibge) || null,
             cep: pedido.entrega_cep || pedido.cobranca_cep || '',
             cpf_cnpj: pedido.cobranca_documento || '',
             complemento: pedido.entrega_complemento || pedido.cobranca_complemento || '',
