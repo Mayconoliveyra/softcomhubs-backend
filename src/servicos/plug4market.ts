@@ -8,6 +8,8 @@ import { Util } from '../util';
 
 const URL_BASE_P4M = 'https://api.plug4market.com.br';
 
+let teste = 1;
+
 interface IProdutoP4m {
   description: string; // Descrição do Produto
   height: number; // Altura (em centimetros).
@@ -315,9 +317,10 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 };
 
 const obterPedidoPlug4Market = async (token: string) => {
+  teste++;
   try {
     const headers = { Authorization: `Bearer ${token}` };
-    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=1&size=1&status=APPROVED&integratedStore=false`, {
+    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=${teste}&size=1&status=APPROVED&integratedStore=true`, {
       headers,
       timeout: TIMEOUT_P4M,
     });
