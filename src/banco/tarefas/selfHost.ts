@@ -247,8 +247,11 @@ const sincronizarPedidos = () => {
     }
 
     emExecucaoPedidos = true;
-    /* try {
-      const pedidos = (await Knex(ETableNames.pedidos).where('status', '=', 'pendente').orderBy('created_at', 'ASC').limit(5)) as IPedido[];
+    try {
+      const pedidos = (await Knex(ETableNames.vw_sh_empresas_sinc_config)
+        .where('prox_sinc_sh_token', '<=', agora)
+        .orderBy('prox_sinc_sh_token', 'ASC')
+        .limit(5)) as IEmpresaSincConfig[];
 
       if (!pedidos.length) {
         emExecucaoPedidos = false;
@@ -276,7 +279,7 @@ const sincronizarPedidos = () => {
       Util.Log.warn('[SH] | Pedidos | Erro ao sincronizar pedidos.', error);
     } finally {
       emExecucaoPedidos = false;
-    } */
+    }
   });
 };
 
