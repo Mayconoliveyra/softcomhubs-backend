@@ -142,6 +142,12 @@ const inserirPedidoComTransacao = async (empresaId: string, cabecalho: Partial<I
   } catch (error) {
     Util.Log.error('Erro ao inserir pedido', error);
 
+    await Knex(ETableNames.empresas)
+      .where('uuid', empresaId)
+      .update({
+        prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
+      });
+
     // Se der erro, faz rollback
     await trx.rollback();
     throw new Error(`Erro ao inserir pedido`);
@@ -335,6 +341,13 @@ const sincronizarPedidos = () => {
             // Quando não tem pedido para ser consultado
             if (!resultado.pedido) {
               Util.Log.info(`[P4M] | Pedidos | Nenhum pedido encontrado | Empresa: ${empresa.uuid}`);
+
+              await Knex(ETableNames.empresas)
+                .where('uuid', empresa.uuid)
+                .update({
+                  prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
+                });
+
               return;
             }
             const novoUuidPedido = resultado.pedido.cabecalho.uuid as string;
