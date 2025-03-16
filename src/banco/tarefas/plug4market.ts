@@ -11,13 +11,14 @@ import { IPedido } from '../models/pedido';
 
 interface IEmpresaTokenSinc {
   uuid: string;
+  registro: string;
   pm4_token: string;
   pm4_token_renovacao: string;
   pm4_token_exp: number;
-  pm4_token_exp_datetime: string;
   prox_sinc_p4m_token: number;
-  prox_sinc_p4m_token_datetime: string;
   prox_sinc_p4m_pedidos: number;
+  pm4_token_exp_datetime: string;
+  prox_sinc_p4m_token_datetime: string;
   prox_sinc_p4m_pedidos_datetime: string;
   token_valido: boolean;
 }
@@ -254,9 +255,9 @@ const sincronizarTokens = () => {
       // !! SE FUTURAMENTE AUMENTAR A QUANTIDADE DE CLIENTES, APENAS AJUSTAR O LIMIT
 
       // Buscar todas as empresas que precisam de renovação
-      const empresas = (await Knex(ETableNames.vw_p4m_empresas_tokens_renovar)
+      const empresas = (await Knex(ETableNames.vw_p4m_empresas_sinc_config)
         .where('prox_sinc_p4m_token', '<=', agora)
-        .orderBy('prox_sinc_p4m_token', 'asc')
+        .orderBy('prox_sinc_p4m_token', 'ASC')
         .limit(5)) as IEmpresaTokenSinc[];
 
       if (!empresas.length) return;
@@ -326,9 +327,10 @@ const sincronizarPedidos = () => {
     try {
       const agora = Util.DataHora.obterTimestampAtual();
 
-      const empresas = (await Knex(ETableNames.vw_p4m_empresas_tokens_renovar)
+      const empresas = (await Knex(ETableNames.vw_p4m_empresas_sinc_config)
         .where('prox_sinc_p4m_pedidos', '<=', agora)
-        .andWhere('token_valido', '=', true)) as IEmpresaTokenSinc[];
+        .andWhere('token_valido', '=', true)
+        .orderBy('prox_sinc_p4m_pedidos', 'ASC')) as IEmpresaTokenSinc[];
 
       if (!empresas.length) return;
 

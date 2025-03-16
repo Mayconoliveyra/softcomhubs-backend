@@ -47,6 +47,7 @@ export async function up(knex: Knex): Promise<void> {
     WHERE e.ativo = 1 
     AND e.deleted_at IS NULL 
     AND e.pm4_token_exp >= UNIX_TIMESTAMP()
+    AND (UNIX_TIMESTAMP(NOW()) <= (e.prox_sinc_p4m_token - 6 * 60)) -- 6m antes
     AND e.pm4_token IS NOT NULL
     ORDER BY p.prox_sinc_p4m ASC;
   `);
