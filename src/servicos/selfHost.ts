@@ -1,6 +1,9 @@
 import axios, { AxiosInstance } from 'axios';
 import qs from 'qs';
 
+import { ETableNames } from '../banco/eTableNames';
+import { Knex } from '../banco/knex';
+
 import { Util } from '../util';
 
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO A TAREFA "selfHost.sincronizarTokens". !!!
@@ -50,8 +53,7 @@ interface IResultadoBusca {
   ultimaDataSync: number;
 }
 
-interface IPedidoRequest {
-  uuid: string; // uuid da api
+export interface IPedidoRequest {
   api_guid: string;
   api_data_hora_venda: number;
   empresa_id: number;
@@ -94,6 +96,35 @@ interface IPedidoResponse {
     };
   };
   date_sync: number;
+}
+
+interface IItemPedido {
+  produto_empresa_grade_id: string;
+  produto_id: string;
+  preco: number;
+  quantidade: number;
+  desconto_valor_item: number;
+  acrescimo_valor_item: number;
+  preco_compra: number;
+}
+
+export interface IClienteCadastrarSH {
+  bairro: string | null;
+  codigo_cidade: number | null;
+  cep: string;
+  cpf_cnpj: string;
+  complemento: string;
+  contato_email: string;
+  contato_nome: string;
+  contato_telefone: string;
+  contribuinte_icms: 1 | 2 | 9;
+  endereco: string;
+  inscricao_estadual: string;
+  nome: string;
+  numero: string;
+  razao_social: string;
+  uf: string;
+  cidade: string;
 }
 
 const extrairDominioEClientId = (url: string) => {
@@ -265,6 +296,8 @@ const buscarProdutos = async (
 };
 
 const enviarPedido = async (dominio: string, token: string, pedido: IPedidoRequest) => {
+  console.log('pedido', pedido);
+
   try {
     const url = `${dominio}/api/vendas/vendas`;
     const data = qs.stringify({ venda: JSON.stringify(pedido) });
@@ -285,9 +318,81 @@ const enviarPedido = async (dominio: string, token: string, pedido: IPedidoReque
 
     return { sucesso: true, venda_id: response.data.data.venda_id };
   } catch (error) {
-    Util.Log.error(`[SH] | Pedido | Erro ao enviar pedido | Pedido: ${pedido.uuid}`, error);
+    Util.Log.error(`[SH] | Pedido | Erro ao enviar pedido | Pedido: ${pedido.api_guid}`, error);
     return { sucesso: false, erro: 'Erro ao enviar pedido.' };
   }
 };
 
-export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken, buscarProdutos, consultarVendedorMarketplace, enviarPedido };
+const buscarItensPedido = async (uuid: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
+  try {
+    const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', uuid).select('id_produto', 'sku', 'preco', 'preco', 'quantidade', 'desconto');
+    const itensFormat: IItemPedido[] = [];
+    const errosFormat: { mensagem: string }[] = [];
+
+    for (const item of itens) {
+      const produtoExiste = await Knex(ETableNames.produtos).where('sh_sku', item.sku).first();
+
+      if (!produtoExiste) {
+        errosFormat.push({ mensagem: `Produto SKU ${item.sku} não está integrado.` });
+      } else {
+        itensFormat.push({
+          produto_empresa_grade_id: produtoExiste.sh_produto_id,
+          produto_id: produtoExiste.sh_sku,
+          preco: item.preco || 0, // Preço pode ser 0
+          quantidade: item.quantidade || 1, // Quantidade não pode ser 0
+          desconto_valor_item: item.desconto || 0,
+          acrescimo_valor_item: 0,
+          preco_compra: 0,
+        });
+      }
+    }
+
+    return { sucesso: !errosFormat.length, itens: itensFormat, erros: errosFormat };
+  } catch (error) {
+    Util.Log.error(`[SH] | Pedidos | Erro ao buscar itens | do pedido ${uuid}.`, error);
+    return { sucesso: false, itens: [], erros: [{ mensagem: 'Erro ao buscar itens do pedido.' }] };
+  }
+};
+
+const buscarOuCadastrarCliente = async (dominio: string, token: string, cpfCnpj: string, dadosCliente: IClienteCadastrarSH) => {
+  try {
+    const urlConsulta = `${dominio}/api/clientes/clientes/cpf_cnpj/${cpfCnpj}`;
+    const responseConsulta = await apiClient.get(urlConsulta, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+
+    if (responseConsulta.data?.code === 1 && responseConsulta.data?.data?.id) {
+      return { sucesso: true, cliente_id: responseConsulta.data.data.id };
+    }
+  } catch (error) {
+    Util.Log.warn(`[SH] | Cliente | Erro ao consultar cliente CPF/CNPJ: ${cpfCnpj}.`, error);
+  }
+
+  try {
+    const urlCadastro = `${dominio}/api/clientes/clientes`;
+    const data = qs.stringify({ cliente: JSON.stringify(dadosCliente) });
+    const responseCadastro = await apiClient.post(urlCadastro, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (responseCadastro.data?.code === 1 && responseCadastro.data?.data) {
+      return { sucesso: true, cliente_id: responseCadastro.data.data };
+    }
+  } catch (error) {
+    Util.Log.error(`[SH] | Cliente | Erro ao cadastrar cliente CPF/CNPJ: ${cpfCnpj}.`, error);
+    return { sucesso: false, erro: 'Erro ao cadastrar cliente.' };
+  }
+
+  return { sucesso: false, erro: 'Cliente não encontrado e não foi possível cadastrar.' };
+};
+
+export const SelfHost = {
+  extrairDominioEClientId,
+  obterClientSecret,
+  obterToken,
+  buscarProdutos,
+  consultarVendedorMarketplace,
+  enviarPedido,
+  buscarItensPedido,
+  buscarOuCadastrarCliente,
+};

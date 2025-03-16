@@ -56,6 +56,7 @@ export interface Billing {
   streetNumber: string; // Número do endereço de cobrança
   taxPayer: boolean; // Flag que sinaliza se o cliente é pagador de imposto
   zipCode: string; // CEP do endereço de cobrança
+  ibge: string;
 }
 
 // Interface para o objeto Invoice (Nota fiscal do pedido)
@@ -118,6 +119,7 @@ export interface Shipping {
   streetNumber: string; // Número do endereço de entrega
   zipCode: string; // CEP do endereço de entrega
   shippingCost: number; // Valor do frete
+  ibge: string;
 }
 
 // Interface para cada mudança de status (StatusUpdateDate)
@@ -379,6 +381,7 @@ const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>
       cobranca_numero: truncarTexto(pedido.billing.streetNumber, 255),
       cobranca_pagador_imposto: pedido.billing.taxPayer || false,
       cobranca_cep: truncarTexto(pedido.billing.zipCode, 255),
+      cobranca_ibge: truncarTexto(pedido.billing.ibge, 255),
 
       entrega_cidade: truncarTexto(pedido.shipping.city, 255),
       entrega_pais: truncarTexto(pedido.shipping.country, 255),
@@ -390,6 +393,7 @@ const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>
       entrega_complemento: truncarTexto(pedido.shipping.streetComplement, 255),
       entrega_numero: truncarTexto(pedido.shipping.streetNumber, 255),
       entrega_cep: truncarTexto(pedido.shipping.zipCode, 255),
+      entrega_ibge: truncarTexto(pedido.shipping.ibge, 255),
 
       estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt) : null,
       prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit) : null,

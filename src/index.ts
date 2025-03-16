@@ -19,6 +19,7 @@ const startServer = () => {
 
   Tarefas.SelfHost.sincronizarTokens();
   Tarefas.SelfHost.sincronizarProdutos();
+  Tarefas.SelfHost.sincronizarPedidos();
 
   Tarefas.Plug4market.sincronizarTokens();
   Tarefas.Plug4market.sincronizarProdutos();

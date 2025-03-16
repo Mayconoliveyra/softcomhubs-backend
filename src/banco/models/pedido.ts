@@ -21,6 +21,7 @@ export interface IPedido {
   cobranca_numero: string | null; // billing_streetNumber - Número do endereço de cobrança
   cobranca_pagador_imposto: boolean; // billing_taxPayer - Flag que sinaliza se o cliente é pagador de imposto
   cobranca_cep: string | null; // billing_zipCode - CEP do endereço de cobrança
+  cobranca_ibge: string | null; // billing_ibge - codigo ibge
 
   // Endereço de entrega do pedido
   entrega_cidade: string | null; // shipping_city - Cidade do endereço de entrega
@@ -33,6 +34,7 @@ export interface IPedido {
   entrega_complemento: string | null; // shipping_streetComplement - Complemento do endereço de entrega
   entrega_numero: string | null; // shipping_streetNumber - Número do endereço de entrega
   entrega_cep: string | null; // shipping_zipCode - CEP do endereço de entrega
+  entrega_ibge: string | null; // shipping_ibge - codigo ibge
 
   estimativa_entrega: string | null; // estimatedDeliveredAt - Data estimada para o envio do pedido
   prazo_maximo_envio: string | null; // estimatedHandlingLimit - Prazo máximo para o vendedor despachar o item

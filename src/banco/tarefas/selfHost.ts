@@ -1,6 +1,7 @@
 import schedule from 'node-schedule';
 
 import { Servicos } from '../../servicos';
+import { IClienteCadastrarSH, IPedidoRequest } from '../../servicos/selfHost';
 
 import { Util } from '../../util';
 
@@ -28,6 +29,59 @@ interface IEmpresaSincConfig {
   prox_sinc_sh_produtos_datetime: string;
   token_valido: boolean;
 }
+
+type IPedidoSinc = {
+  registro: string;
+  sh_url: string;
+  sh_empresa_id: number;
+  sh_usuario_id: number;
+  sh_forma_pagamento: string;
+  sh_token: string;
+  token_valido: boolean;
+  uuid: string;
+  empresa_id: string;
+  id_p4m: string;
+  id_pedido_canal_venda: string;
+  canal_venda_nome: string;
+  cobranca_cidade: string;
+  cobranca_pais: string;
+  cobranca_bairro: string;
+  cobranca_documento: string;
+  cobranca_email: string;
+  cobranca_nome: string;
+  cobranca_telefone: string;
+  cobranca_estado: string;
+  cobranca_rua: string;
+  cobranca_complemento: string;
+  cobranca_numero: string;
+  cobranca_pagador_imposto: boolean;
+  cobranca_cep: string;
+  entrega_cidade: string;
+  entrega_pais: string;
+  entrega_bairro: string;
+  entrega_telefone: string;
+  entrega_nome_destinatario: string;
+  entrega_estado: string;
+  entrega_rua: string;
+  entrega_complemento: string;
+  entrega_numero: string;
+  entrega_cep: string;
+  estimativa_entrega: string;
+  prazo_maximo_envio: string;
+  criado_canal_venda: string;
+  observacao: string;
+  custo_envio: number;
+  juros: number;
+  comissao_total: number;
+  valor_total: number;
+  sh_id_pedido: string;
+  sh_data_sinc: string;
+  created_at: string;
+  updated_at: string;
+  ultima_sinc_erros: string;
+  prox_sinc: number;
+  prox_sinc_datetime: string;
+};
 
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
@@ -248,21 +302,85 @@ const sincronizarPedidos = () => {
 
     emExecucaoPedidos = true;
     try {
-      const pedidos = (await Knex(ETableNames.vw_sh_empresas_sinc_config)
-        .where('prox_sinc_sh_token', '<=', agora)
-        .orderBy('prox_sinc_sh_token', 'ASC')
-        .limit(5)) as IEmpresaSincConfig[];
+      const pedidosRaw = await Knex.raw(`
+        SELECT * FROM (
+          SELECT *,
+          ROW_NUMBER() OVER (PARTITION BY empresa_id ORDER BY prox_sinc ASC) AS rn
+          FROM ${ETableNames.vw_sh_pedidos_sinc}
+          WHERE token_valido = true
+        ) AS sub
+        WHERE rn = 1
+        ORDER BY prox_sinc ASC
+      `);
+
+      const pedidos = (pedidosRaw[0] || pedidosRaw.rows || pedidosRaw) as IPedidoSinc[];
 
       if (!pedidos.length) {
         emExecucaoPedidos = false;
         return;
       }
 
+      /*  console.log(pedidos); */
       await Promise.all(
         pedidos.map(async (pedido) => {
-          const resultado = await enviarPedidoSelfHost(pedido.sh_url, pedido.sh_token, pedido.dados_pedido);
+          const modeloCliente: IClienteCadastrarSH = {
+            bairro: pedido.entrega_bairro || pedido.cobranca_bairro || '',
+            codigo_cidade: 1, // pendente
+            cep: pedido.entrega_cep || pedido.cobranca_cep || '',
+            cpf_cnpj: pedido.cobranca_documento || '',
+            complemento: pedido.entrega_complemento || pedido.cobranca_complemento || '',
+            contato_email: pedido.entrega_cep || pedido.cobranca_cep || '',
+            contato_nome: pedido.cobranca_email || '',
+            contato_telefone: pedido.entrega_telefone || pedido.cobranca_telefone || '',
+            contribuinte_icms: 1,
+            endereco: pedido.entrega_rua || pedido.cobranca_rua || '',
+            inscricao_estadual: '',
+            nome: pedido.entrega_nome_destinatario || pedido.cobranca_nome || '',
+            numero: pedido.entrega_numero || pedido.cobranca_cep || '',
+            razao_social: pedido.entrega_cep || pedido.cobranca_numero || '',
+            uf: pedido.entrega_estado || pedido.cobranca_estado || '',
+            cidade: pedido.entrega_cidade || pedido.cobranca_cidade || '',
+          };
 
-          if (resultado.sucesso && resultado.venda_id) {
+          const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.uuid);
+          /*   const resultadoCliente = await Servicos.SelfHost.buscarOuCadastrarCliente(pedido.sh_url, pedido.sh_token, pedido.cobranca_documento); */
+
+          if (!resultadoItens.sucesso) {
+            await Knex(ETableNames.pedidos)
+              .where('uuid', pedido.uuid)
+              .update({
+                prox_sinc: Util.DataHora.gerarTimestampMM(2, 5), //
+                ultima_sinc_erros: Knex.raw('?', [JSON.stringify(resultadoItens.erros)]),
+              });
+            Util.Log.error(`[SH] | Pedidos | Item inválido no pedido | Pedido: ${pedido.uuid}`, resultadoItens.erros);
+            return;
+          }
+
+          const pedidoCabecalho: IPedidoRequest = {
+            api_guid: pedido.uuid,
+            api_data_hora_venda: pedido.criado_canal_venda
+              ? Util.DataHora.converterDataParaTimestamp(pedido.criado_canal_venda)
+              : Util.DataHora.obterTimestampAtual(),
+            empresa_id: pedido.sh_empresa_id,
+            usuario_lancamento_id: pedido.sh_usuario_id,
+            cliente_id: 1,
+            observacao: '',
+            usuario_id: pedido.sh_usuario_id,
+            item: resultadoItens.itens,
+            pagamento: [
+              {
+                api_nome_pagamento: pedido.sh_forma_pagamento,
+                valor_parcela: pedido.valor_total,
+              },
+            ],
+          };
+
+          const resultadoEnviarPedido = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, pedidoCabecalho);
+          console.log(resultadoEnviarPedido);
+
+          /*  const resultado = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, pedido); */
+
+          /*   if (resultado.sucesso && resultado.venda_id) {
             await Knex(ETableNames.pedidos).where('id', pedido.id).update({
               status: 'enviado',
               venda_id: resultado.venda_id,
@@ -272,7 +390,7 @@ const sincronizarPedidos = () => {
             Util.Log.info(`[SH] | Pedidos | Pedido ${pedido.id} enviado com sucesso! Venda ID: ${resultado.venda_id}`);
           } else {
             Util.Log.error(`[SH] | Pedidos | Falha ao enviar pedido ${pedido.id}: ${resultado.erro}`);
-          }
+          } */
         }),
       );
     } catch (error) {
@@ -283,4 +401,4 @@ const sincronizarPedidos = () => {
   });
 };
 
-export const SelfHost = { sincronizarProdutos, sincronizarTokens };
+export const SelfHost = { sincronizarProdutos, sincronizarTokens, sincronizarPedidos };

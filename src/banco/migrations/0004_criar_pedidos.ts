@@ -29,6 +29,7 @@ export async function up(knex: Knex) {
       table.string('cobranca_numero', 255).nullable();
       table.boolean('cobranca_pagador_imposto').nullable();
       table.string('cobranca_cep', 255).nullable();
+      table.string('cobranca_ibge', 255).nullable();
 
       // Endereço de entrega do pedido
       table.string('entrega_cidade', 255).nullable();
@@ -41,6 +42,7 @@ export async function up(knex: Knex) {
       table.string('entrega_complemento', 255).nullable();
       table.string('entrega_numero', 255).nullable();
       table.string('entrega_cep', 255).nullable();
+      table.string('entrega_ibge', 255).nullable();
 
       table.timestamp('estimativa_entrega').nullable();
       table.timestamp('prazo_maximo_envio').nullable();

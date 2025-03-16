@@ -121,6 +121,11 @@ const getErroTentativaMM = (timestamp: number): 1 | 2 | 3 | 0 => {
   return 0; // Se não for um timestamp de erro, retorna 0
 };
 
+// Função que converte uma data no formato "YYYY-MM-DD HH:mm:ss" para timestamp (milissegundos)
+const converterDataParaTimestamp = (data: string): number => {
+  return moment(data, 'YYYY-MM-DD HH:mm:ss').unix();
+};
+
 export const DataHora = {
   formatarDataHora,
   obterDataAtual,
@@ -132,4 +137,5 @@ export const DataHora = {
   adicionarDias,
   gerarTimestampMM,
   getErroTentativaMM,
+  converterDataParaTimestamp,
 };
