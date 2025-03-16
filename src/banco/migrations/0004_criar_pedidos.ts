@@ -53,6 +53,9 @@ export async function up(knex: Knex) {
       table.decimal('comissao_total', 15, 4).nullable();
       table.decimal('valor_total', 15, 4).nullable();
 
+      table.string('sh_id_pedido', 255).nullable();
+      table.timestamp('sh_data_sinc').nullable();
+
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
     })

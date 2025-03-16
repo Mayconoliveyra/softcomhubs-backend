@@ -6,6 +6,8 @@ import { Util } from '../../util';
 
 import { ETableNames } from '../eTableNames';
 import { Knex } from '../knex';
+import { IItemPedido } from '../models/ItemPedido';
+import { IPedido } from '../models/pedido';
 
 interface IEmpresaTokenSinc {
   uuid: string;
@@ -122,6 +124,27 @@ const atualizarProdutosBatch = async (produtos: IProdutoSinc[]) => {
   } catch (error) {
     Util.Log.error('Erro ao atualizar produtos em batch', error);
     throw new Error('Erro ao atualizar produtos em batch');
+  }
+};
+
+const inserirPedidoComTransacao = async (empresaId: string, cabecalho: Partial<IPedido>, itens: Partial<IItemPedido>[]) => {
+  const trx = await Knex.transaction();
+  try {
+    // Inserir cabeçalho do pedido
+    await trx(ETableNames.pedidos).insert({ empresa_id: empresaId, ...cabecalho });
+
+    // Inserir itens do pedido
+    await trx(ETableNames.pedido_itens).insert(itens);
+
+    // Commit da transação
+    await trx.commit();
+    return true;
+  } catch (error) {
+    Util.Log.error('Erro ao inserir pedido', error);
+
+    // Se der erro, faz rollback
+    await trx.rollback();
+    throw new Error(`Erro ao inserir pedido`);
   }
 };
 
@@ -244,7 +267,7 @@ const sincronizarTokens = () => {
                 pm4_token: tokenData.novoToken,
                 pm4_token_renovacao: tokenData.novoRefreshToken,
                 pm4_token_exp: tokenData.tokenExpiracao,
-                prox_sinc_p4m_token: Util.DataHora.gerarTimestampMM(1200, 1380), // Expira entre 20h e 23h
+                prox_sinc_p4m_token: Util.DataHora.gerarTimestampMM(900, 1380), // Expira entre 15h e 23h depois
               });
 
             Util.Log.info(`[P4M] | Tokens | Token renovado com sucesso! | Empresa: ${empresa.uuid}`);
@@ -314,30 +337,30 @@ const sincronizarPedidos = () => {
               Util.Log.info(`[P4M] | Pedidos | Nenhum pedido encontrado | Empresa: ${empresa.uuid}`);
               return;
             }
+            const novoUuidPedido = resultado.pedido.cabecalho.uuid as string;
+            const idP4m = resultado.pedido.cabecalho.id_p4m;
 
-            const pedidoExiste = await Knex(ETableNames.pedidos).where('id_p4m', resultado.pedido.id_p4m).andWhere('empresa_id', empresa.uuid).first();
+            const pedidoExiste = await Knex(ETableNames.pedidos).where('id_p4m', idP4m).andWhere('empresa_id', empresa.uuid).first();
             if (!pedidoExiste) {
-              const novoUuidPedido = Util.UuidV4.gerar();
+              await inserirPedidoComTransacao(empresa.uuid, resultado.pedido.cabecalho, resultado.pedido.itens);
 
-              await Knex(ETableNames.pedidos).insert({ uuid: novoUuidPedido, empresa_id: empresa.uuid, ...resultado.pedido });
-
-              const resultadoConfirmar = await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, resultado.pedido.id_p4m as string, novoUuidPedido);
+              const resultadoConfirmar = await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, idP4m as string, novoUuidPedido);
               if (resultadoConfirmar) {
-                Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido: ${resultado.pedido.id_p4m} | Empresa: ${empresa.uuid}`);
+                Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
               } else {
                 await Knex(ETableNames.pedidos).delete().where(novoUuidPedido);
-                Util.Log.error(`[P4M] | Pedidos | Erro ao confirmar pedido, nada feito... | Pedido: ${resultado.pedido.id_p4m} | Empresa: ${empresa.uuid}`);
+                Util.Log.error(`[P4M] | Pedidos | Erro ao confirmar pedido, nada feito... | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
               }
             } else {
-              await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, resultado.pedido.id_p4m as string, pedidoExiste.uuid);
-              Util.Log.warn(`[P4M] | Pedidos | Pedido já existe, ignorando... | Pedido: ${resultado.pedido.id_p4m} | Empresa: ${empresa.uuid}`);
+              await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, idP4m as string, pedidoExiste.uuid);
+              Util.Log.warn(`[P4M] | Pedidos | Pedido já existe, ignorando... | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
             }
 
-            await Knex(ETableNames.empresas)
+            /*   await Knex(ETableNames.empresas)
               .where('uuid', empresa.uuid)
               .update({
-                prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 3), // entre 2 e 3m
-              });
+                prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
+              }); */
           } else {
             // Obtém a tentativa de erro anterior a partir do timestamp armazenado.
             // Se for um erro identificado (01, 02 ou 03), retorna o número da tentativa (1, 2 ou 3).

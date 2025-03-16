@@ -17,7 +17,12 @@ export async function up(knex: Knex): Promise<void> {
           FROM_UNIXTIME(prox_sinc_p4m_token) AS prox_sinc_p4m_token_datetime,
           prox_sinc_p4m_pedidos,
           FROM_UNIXTIME(prox_sinc_p4m_pedidos) AS prox_sinc_p4m_pedidos_datetime,
-          ((pm4_token_exp) > UNIX_TIMESTAMP(NOW())) AS token_valido -- Indica se o token ainda está dentro da margem de validade
+          -- token_valido: true se o token não expirou (pm4_token_exp >= NOW())
+          -- o AND garante que o token não vai ta sendo utilizando no momento da renovação
+          (
+            pm4_token_exp >= UNIX_TIMESTAMP(NOW())
+            AND (UNIX_TIMESTAMP(NOW()) <= (prox_sinc_p4m_token - 6 * 60)) -- 6m antes
+          ) AS token_valido
       FROM empresas
       WHERE 
           deleted_at IS NULL 

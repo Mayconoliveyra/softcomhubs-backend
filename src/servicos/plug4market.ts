@@ -1,9 +1,12 @@
 import axios, { AxiosError } from 'axios';
 
+import { IItemPedido } from '../banco/models/ItemPedido';
 import { IPedido } from '../banco/models/pedido';
 import { IProdutoSinc } from '../banco/tarefas/plug4market';
 
 import { Util } from '../util';
+
+let teste = 10;
 
 const URL_BASE_P4M = 'https://api.plug4market.com.br';
 
@@ -64,7 +67,6 @@ export interface Invoice {
   xml: string; // XML da nota fiscal
 }
 
-// Interface para cada item do pedido (OrderItem)
 export interface OrderItem {
   customId: string; // ID de confirmação enviado pelo cliente
   discount: number; // Valor do desconto dado no produto
@@ -315,9 +317,10 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 };
 
 const obterPedidoPlug4Market = async (token: string) => {
+  teste++;
   try {
     const headers = { Authorization: `Bearer ${token}` };
-    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=1&size=1&status=APPROVED&integratedStore=true`, {
+    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=${teste}&size=1&status=APPROVED&integratedStore=true`, {
       headers,
       timeout: TIMEOUT_P4M,
     });
@@ -352,48 +355,71 @@ const obterDetalhesPedido = async (token: string, pedidoId: string) => {
   }
 };
 
-const tratarPedido = (pedido: IPedidoP4MResponse): Partial<IPedido> => {
+const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>; itens: Partial<IItemPedido>[] } => {
+  const uuidCriarPedido = Util.UuidV4.gerar(); // Criar uuid para o pedido
+
   return {
-    id_p4m: pedido.id,
+    cabecalho: {
+      uuid: uuidCriarPedido,
+      id_p4m: pedido.id,
 
-    id_pedido_canal_venda: truncarTexto(pedido.saleChannelOrderId, 255),
-    canal_venda_nome: truncarTexto(pedido.saleChannelName, 255),
+      id_pedido_canal_venda: truncarTexto(pedido.saleChannelOrderId, 255),
+      canal_venda_nome: truncarTexto(pedido.saleChannelName, 255),
 
-    cobranca_cidade: truncarTexto(pedido.billing.city, 255),
-    cobranca_pais: truncarTexto(pedido.billing.country, 255),
-    cobranca_bairro: truncarTexto(pedido.billing.district, 255),
-    cobranca_documento: truncarTexto(pedido.billing.documentId, 255),
-    cobranca_email: truncarTexto(pedido.billing.email, 255),
-    cobranca_nome: truncarTexto(pedido.billing.name, 255),
-    cobranca_telefone: truncarTexto(pedido.billing.phone, 255),
-    cobranca_estado: truncarTexto(pedido.billing.state, 255),
-    cobranca_rua: truncarTexto(pedido.billing.street, 255),
-    cobranca_complemento: truncarTexto(pedido.billing.streetComplement, 255),
-    cobranca_numero: truncarTexto(pedido.billing.streetNumber, 255),
-    cobranca_pagador_imposto: pedido.billing.taxPayer || false,
-    cobranca_cep: truncarTexto(pedido.billing.zipCode, 255),
+      cobranca_cidade: truncarTexto(pedido.billing.city, 255),
+      cobranca_pais: truncarTexto(pedido.billing.country, 255),
+      cobranca_bairro: truncarTexto(pedido.billing.district, 255),
+      cobranca_documento: truncarTexto(pedido.billing.documentId, 255),
+      cobranca_email: truncarTexto(pedido.billing.email, 255),
+      cobranca_nome: truncarTexto(pedido.billing.name, 255),
+      cobranca_telefone: truncarTexto(pedido.billing.phone, 255),
+      cobranca_estado: truncarTexto(pedido.billing.state, 255),
+      cobranca_rua: truncarTexto(pedido.billing.street, 255),
+      cobranca_complemento: truncarTexto(pedido.billing.streetComplement, 255),
+      cobranca_numero: truncarTexto(pedido.billing.streetNumber, 255),
+      cobranca_pagador_imposto: pedido.billing.taxPayer || false,
+      cobranca_cep: truncarTexto(pedido.billing.zipCode, 255),
 
-    entrega_cidade: truncarTexto(pedido.shipping.city, 255),
-    entrega_pais: truncarTexto(pedido.shipping.country, 255),
-    entrega_bairro: truncarTexto(pedido.shipping.district, 255),
-    entrega_telefone: truncarTexto(pedido.shipping.phone, 255),
-    entrega_nome_destinatario: truncarTexto(pedido.shipping.recipientName, 255),
-    entrega_estado: truncarTexto(pedido.shipping.state, 255),
-    entrega_rua: truncarTexto(pedido.shipping.street, 255),
-    entrega_complemento: truncarTexto(pedido.shipping.streetComplement, 255),
-    entrega_numero: truncarTexto(pedido.shipping.streetNumber, 255),
-    entrega_cep: truncarTexto(pedido.shipping.zipCode, 255),
+      entrega_cidade: truncarTexto(pedido.shipping.city, 255),
+      entrega_pais: truncarTexto(pedido.shipping.country, 255),
+      entrega_bairro: truncarTexto(pedido.shipping.district, 255),
+      entrega_telefone: truncarTexto(pedido.shipping.phone, 255),
+      entrega_nome_destinatario: truncarTexto(pedido.shipping.recipientName, 255),
+      entrega_estado: truncarTexto(pedido.shipping.state, 255),
+      entrega_rua: truncarTexto(pedido.shipping.street, 255),
+      entrega_complemento: truncarTexto(pedido.shipping.streetComplement, 255),
+      entrega_numero: truncarTexto(pedido.shipping.streetNumber, 255),
+      entrega_cep: truncarTexto(pedido.shipping.zipCode, 255),
 
-    estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt) : null,
-    prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit) : null,
+      estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt) : null,
+      prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit) : null,
 
-    criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated) : null,
-    observacao: truncarTexto(pedido.note, 255),
+      criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated) : null,
+      observacao: truncarTexto(pedido.note, 255),
 
-    custo_envio: Number(pedido.shippingCost?.toFixed(4)) || 0,
-    juros: Number(pedido.interest?.toFixed(4)) || 0,
-    comissao_total: Number(pedido.totalCommission?.toFixed(4)) || 0,
-    valor_total: Number(pedido.totalAmount?.toFixed(4)) || 0,
+      custo_envio: Number(pedido.shippingCost?.toFixed(4)) || 0,
+      juros: Number(pedido.interest?.toFixed(4)) || 0,
+      comissao_total: Number(pedido.totalCommission?.toFixed(4)) || 0,
+      valor_total: Number(pedido.totalAmount?.toFixed(4)) || 0,
+    },
+    itens:
+      pedido.orderItems?.map((item) => ({
+        uuid: Util.UuidV4.gerar(), // Criar um uuid para o item
+        pedido_id: uuidCriarPedido,
+
+        id_produto: truncarTexto(item.productId, 255) || '',
+        nome: truncarTexto(item.name, 255) || '',
+        sku: truncarTexto(item.sku, 255) || '',
+        preco: Number(item.price?.toFixed(4)) || 0,
+        preco_original: Number(item.originalPrice?.toFixed(4)) || 0,
+        preco_venda: Number(item.salePrice?.toFixed(4)) || 0,
+        desconto: Number(item.discount?.toFixed(4)) || 0,
+        frete: Number(item.freight?.toFixed(4)) || 0,
+        quantidade: item.quantity || 0,
+        desconto_unidade: Number(item.unitDiscount?.toFixed(4)) || 0,
+        total: Number(item.total?.toFixed(4)) || 0,
+        total_original: Number(item.originalTotal?.toFixed(4)) || 0,
+      })) || [],
   };
 };
 

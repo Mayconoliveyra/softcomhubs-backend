@@ -45,6 +45,9 @@ export interface IPedido {
   comissao_total?: number; // totalCommission - Valor de comissionamento do canal de vendas
   valor_total: number; // totalAmount - Valor total do pedido
 
+  sh_id_pedido: string | null; // id do pedido no erp destino
+  sh_data_sinc: string | null; // data/hora que foi enviado para o destino
+
   created_at: string;
   updated_at?: string;
 }

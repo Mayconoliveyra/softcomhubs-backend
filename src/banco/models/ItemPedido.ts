@@ -1,4 +1,4 @@
-export interface ItemPedido {
+export interface IItemPedido {
   uuid: string;
   pedido_id: string;
 
