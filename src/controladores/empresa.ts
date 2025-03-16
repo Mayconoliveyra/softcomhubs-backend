@@ -1,7 +1,5 @@
-import axios from 'axios';
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import qs from 'qs';
 import * as yup from 'yup';
 
 import { Middlewares } from '../middlewares';
@@ -25,6 +23,8 @@ const limparDadosSelfHost = async (uuid: string) => {
     sh_client_secret: null,
     sh_token: null,
     sh_token_exp: 0,
+    sh_empresa_id: null,
+    sh_usuario_id: null,
   });
 };
 
@@ -53,30 +53,38 @@ const autenticacaoSelfHost = async (req: Request<{}, {}, IAuthRequest>, res: Res
     }
 
     const parsedUrl = Servicos.SelfHost.extrairDominioEClientId(sh_qrcode_url);
-    if (!parsedUrl) {
+    if (!parsedUrl.sucesso || !parsedUrl.dominio || !parsedUrl.clientId) {
       await limparDadosSelfHost(uuid);
-      return res.status(StatusCodes.BAD_REQUEST).json({ errors: { default: 'URL inválida.' } });
+      return res.status(StatusCodes.BAD_REQUEST).json({ errors: { default: parsedUrl.erro } });
     }
 
-    const clientSecret = await Servicos.SelfHost.obterClientSecret(parsedUrl.dominio, parsedUrl.clientId);
-    if (!clientSecret) {
+    const resultObterClienteSecret = await Servicos.SelfHost.obterClientSecret(parsedUrl.dominio, parsedUrl.clientId);
+    if (!resultObterClienteSecret.sucesso || !resultObterClienteSecret.client_secret) {
       await limparDadosSelfHost(uuid);
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'Erro ao obter client secret.' } });
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: resultObterClienteSecret.erro } });
     }
 
-    const tokenData = await Servicos.SelfHost.obterToken(parsedUrl.dominio, parsedUrl.clientId, clientSecret);
-    if (!tokenData) {
+    const resultObterToken = await Servicos.SelfHost.obterToken(parsedUrl.dominio, parsedUrl.clientId, resultObterClienteSecret.client_secret);
+    if (!resultObterToken.sucesso) {
       await limparDadosSelfHost(uuid);
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'Erro ao obter token.' } });
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: resultObterToken.erro } });
+    }
+
+    const resultObterVendedor = await Servicos.SelfHost.consultarVendedorMarketplace(parsedUrl.dominio, resultObterToken.sh_token);
+    if (!resultObterVendedor.sucesso) {
+      await limparDadosSelfHost(uuid);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: resultObterVendedor.erro } });
     }
 
     await Repositorios.Empresa.atualizarDadosSelfHost(uuid, {
       sh_qrcode_url,
       sh_url: parsedUrl.dominio,
       sh_client_id: parsedUrl.clientId,
-      sh_client_secret: clientSecret,
-      sh_token: tokenData.sh_token,
-      sh_token_exp: tokenData.sh_token_exp,
+      sh_client_secret: resultObterClienteSecret.client_secret,
+      sh_token: resultObterToken.sh_token,
+      sh_token_exp: resultObterToken.sh_token_exp,
+      sh_empresa_id: resultObterClienteSecret.empresa_id,
+      sh_usuario_id: resultObterVendedor.usuario_id,
     });
 
     return res.status(StatusCodes.OK).send();

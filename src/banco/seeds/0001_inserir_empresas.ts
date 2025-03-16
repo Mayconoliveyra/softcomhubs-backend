@@ -23,6 +23,10 @@ export const seed = async (knex: Knex) => {
         sinc_estoque: true,
         sinc_fabricante: true,
         ativo: true,
+
+        sh_usuario_id: 1,
+        sh_empresa_id: 1,
+        sh_forma_pagamento: 'ESPÉCIE',
       },
       {
         uuid: '02a1d240-287b-4d92-aeb9-606b7ad7c98d',
@@ -36,6 +40,10 @@ export const seed = async (knex: Knex) => {
         sinc_estoque: true,
         sinc_fabricante: true,
         ativo: true,
+
+        sh_usuario_id: 1,
+        sh_empresa_id: 1,
+        sh_forma_pagamento: 'ESPÉCIE',
       },
       {
         uuid: '9972d3b0-26ae-4abf-a6f6-3a22c14e30aa',
@@ -49,6 +57,10 @@ export const seed = async (knex: Knex) => {
         sinc_estoque: true,
         sinc_fabricante: true,
         ativo: true,
+
+        sh_usuario_id: 1,
+        sh_empresa_id: 1,
+        sh_forma_pagamento: 'ESPÉCIE',
       },
     ])
     .then(() => {

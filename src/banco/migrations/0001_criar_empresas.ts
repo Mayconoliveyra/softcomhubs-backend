@@ -26,6 +26,10 @@ export async function up(knex: Knex) {
       table.text('pm4_token_renovacao');
       table.bigInteger('pm4_token_exp').notNullable().defaultTo(0);
 
+      table.integer('sh_empresa_id');
+      table.integer('sh_usuario_id');
+      table.string('sh_forma_pagamento').notNullable().defaultTo('ONLINE');
+
       table.text('sh_qrcode_url');
       table.string('sh_url', 255);
       table.string('sh_client_id', 255);

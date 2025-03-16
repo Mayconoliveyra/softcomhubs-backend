@@ -17,11 +17,15 @@ export interface IEmpresa {
   pm4_token_renovacao?: string | null;
   pm4_token_exp: number;
 
-  sh_qrcode_url: string;
-  sh_url: string;
-  sh_client_id: string;
-  sh_client_secret: string;
-  sh_token: string;
+  sh_empresa_id: number | null;
+  sh_usuario_id: number | null;
+  sh_forma_pagamento: string;
+
+  sh_qrcode_url: string | null;
+  sh_url: string | null;
+  sh_client_id: string | null;
+  sh_client_secret: string | null;
+  sh_token: string | null;
   sh_token_exp: number;
   sh_ultima_sinc_produtos: number;
 

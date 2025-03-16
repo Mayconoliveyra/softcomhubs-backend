@@ -1,5 +1,6 @@
 import { ETableNames } from '../banco/eTableNames';
 import { Knex } from '../banco/knex';
+import { IEmpresa } from '../banco/models/empresa';
 
 import { Util } from '../util';
 
@@ -7,7 +8,7 @@ const buscarPorId = async (empresa_id: string) => {
   return await Knex(ETableNames.empresas).where({ uuid: empresa_id }).whereNull('deleted_at').first();
 };
 
-const atualizarDadosSelfHost = async (uuid: string, data: Record<string, any>) => {
+const atualizarDadosSelfHost = async (uuid: string, data: Partial<IEmpresa>) => {
   try {
     return await Knex(ETableNames.empresas)
       .where('uuid', uuid)

@@ -54,11 +54,14 @@ const extrairDominioEClientId = (url: string) => {
     const urlObj = new URL(url);
     const clientId = urlObj.searchParams.get('client_id');
     const dominio = `${urlObj.protocol}//${urlObj.host}`;
-    if (!clientId) throw new Error('Client ID não encontrado na URL');
-    return { dominio, clientId };
+    if (!dominio) throw 'Domínio não encontrado na URL';
+    if (!clientId) throw 'Client ID não encontrado na URL';
+
+    return { sucesso: true, dominio, clientId };
   } catch (error) {
-    Util.Log.error('Erro ao extrair domínio e client_id', error);
-    return null;
+    Util.Log.error(`[SH] | Autenticação | ${error} | URL: ${url}`, error);
+
+    return { sucesso: false, dominio: null, clientId: null, erro: error };
   }
 };
 
@@ -80,10 +83,19 @@ const obterClientSecret = async (dominio: string, clientId: string) => {
       },
       timeout: TIMEOUT_SELF_HOST,
     });
-    return response.data.data.client_secret;
+
+    const clientSecret = response.data?.data?.client_secret;
+    const empresaId = response.data?.data?.empresa_id;
+
+    if (response?.data?.code == 1 && clientSecret && empresaId) {
+      return { sucesso: true, client_secret: clientSecret, empresa_id: empresaId };
+    } else {
+      return { sucesso: false, client_secret: null, erro: typeof response?.data?.message == 'string' ? response.data.message : 'Erro desconhecido' };
+    }
   } catch (error) {
-    Util.Log.error('Erro ao obter client secret', error);
-    return null;
+    Util.Log.error(`[SH] | Autenticação | Erro ao obter client secret | Domínio: ${dominio} | clientId: ${clientId}`, error);
+
+    return { sucesso: false, client_secret: null, erro: 'Erro ao obter client secret.' };
   }
 };
 
@@ -97,17 +109,45 @@ const obterToken = async (dominio: string, clientId: string, clientSecret: strin
       timeout: TIMEOUT_SELF_HOST,
     });
 
-    if (!response.data?.data?.token) {
-      Util.Log.error('Resposta inválida ao obter token', response.data);
-      return null;
+    const token = response.data?.data?.token;
+
+    if (response?.data?.code == 1 && token) {
+      const sh_token_exp = Util.DataHora.obterTimestampAtual() + 3000; // Seta a expiração = 50m (padrão da api é 60m)
+
+      return { sucesso: true, sh_token: token, sh_token_exp: sh_token_exp };
+    } else {
+      return { sucesso: false, token: null, erro: typeof response?.data?.message == 'string' ? response.data.message : 'Erro desconhecido' };
+    }
+  } catch (error) {
+    Util.Log.error(`[SH] | Autenticação | Erro ao obter token | Domínio: ${dominio} | clientId: ${clientId} | clientSecret: ${clientSecret}`, error);
+
+    return { sucesso: false, client_secret: null, erro: 'Erro ao obter token.' };
+  }
+};
+
+const consultarVendedorMarketplace = async (dominio: string, token: string) => {
+  try {
+    const url = `${dominio}/api/funcionario`;
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: TIMEOUT_SELF_HOST,
+    });
+
+    if (response?.data?.code !== 1 || !Array.isArray(response?.data?.data)) {
+      return { sucesso: false, erro: typeof response?.data?.message == 'string' ? response.data.message : 'Erro desconhecido' };
     }
 
-    const sh_token = response.data.data.token;
-    const sh_token_exp = Util.DataHora.obterTimestampAtual() + 3000; // Seta a expiração = 50m (padrão da api é 60m)
-    return { sh_token, sh_token_exp };
+    const funcionarios = response.data.data;
+    const vendedorMarketplace = funcionarios.find((f: any) => f.nome === 'MARKETPLACE');
+
+    if (vendedorMarketplace) {
+      return { sucesso: true, usuario_id: vendedorMarketplace.usuario_id };
+    } else {
+      return { sucesso: false, erro: 'Usuário MARKETPLACE não foi encontrado no banco.' };
+    }
   } catch (error) {
-    Util.Log.error('Erro ao obter token', error);
-    return null;
+    Util.Log.error('[SH] | Autenticação | Erro ao consultar vendedores.', error);
+    return { sucesso: false, erro: 'Erro ao consultar vendedores.' };
   }
 };
 
@@ -130,7 +170,7 @@ const buscarProdutos = async (
 
     while (hasNextPage) {
       const url = `${sh_url}/api/produtos/produtos/ultima_sincronizacao/${sh_ultima_sinc}/page/${page}`;
-      Util.Log.info(`Buscando produtos na página ${page} da empresa ${empresa_id}`);
+      Util.Log.info(`[SH] | Produtos | Buscando produtos | Página: ${page} | Empresa: ${empresa_id}`);
 
       const response = await axios.get<ISelfHostResponse>(url, {
         headers: { Authorization: `Bearer ${sh_token}` },
@@ -138,14 +178,14 @@ const buscarProdutos = async (
       });
 
       if (response.data.code !== 1) {
-        Util.Log.error(`Erro ao buscar produtos da empresa ${empresa_id}: ${response.data.message}`);
+        Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos | Empresa: ${empresa_id}`, response.data.message);
         break;
       }
       // Seta a data de sincronização. Essa linha tem que ficar aqui, se colocar a baixo vai ter problemas.
       ultimaDataSync = response?.data?.date_sync || sh_ultima_sinc;
 
       if (!response.data.hasData) {
-        Util.Log.info(`Finalizada busca de produtos para empresa ${empresa_id}`);
+        Util.Log.info(`[SH] | Produtos | Finalizada busca de produtos | Empresa ${empresa_id}`);
         break;
       }
 
@@ -185,9 +225,9 @@ const buscarProdutos = async (
 
     return { produtos: produtosFormatados, ultimaDataSync };
   } catch (error) {
-    Util.Log.error(`Erro ao buscar produtos no SelfHost para empresa ${empresa_id}`, error);
+    Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos no SelfHost | Empresa: ${empresa_id}`, error);
     return { produtos: [], ultimaDataSync: sh_ultima_sinc };
   }
 };
 
-export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken, buscarProdutos };
+export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken, buscarProdutos, consultarVendedorMarketplace };
