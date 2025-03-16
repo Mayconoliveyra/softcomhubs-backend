@@ -356,11 +356,11 @@ const sincronizarPedidos = () => {
               Util.Log.warn(`[P4M] | Pedidos | Pedido já existe, ignorando... | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
             }
 
-            /*   await Knex(ETableNames.empresas)
+            await Knex(ETableNames.empresas)
               .where('uuid', empresa.uuid)
               .update({
                 prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
-              }); */
+              });
           } else {
             // Obtém a tentativa de erro anterior a partir do timestamp armazenado.
             // Se for um erro identificado (01, 02 ou 03), retorna o número da tentativa (1, 2 ou 3).
