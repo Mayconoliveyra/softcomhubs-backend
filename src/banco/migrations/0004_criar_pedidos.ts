@@ -56,6 +56,9 @@ export async function up(knex: Knex) {
       table.string('sh_id_pedido', 255).nullable();
       table.timestamp('sh_data_sinc').nullable();
 
+      table.bigInteger('prox_sinc').notNullable().defaultTo(0);
+      table.json('ultima_sinc_erros');
+
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
     })

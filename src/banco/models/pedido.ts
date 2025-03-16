@@ -48,6 +48,9 @@ export interface IPedido {
   sh_id_pedido: string | null; // id do pedido no erp destino
   sh_data_sinc: string | null; // data/hora que foi enviado para o destino
 
+  prox_sinc: number;
+  ultima_sinc_erros: unknown | null;
+
   created_at: string;
   updated_at?: string;
 }

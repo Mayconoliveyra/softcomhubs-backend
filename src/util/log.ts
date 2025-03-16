@@ -14,89 +14,90 @@ if (!fs.existsSync(logDir)) {
 // Variável para armazenar a data atual
 let currentDate = DataHora.obterDataAtual('DD-MM-YYYY');
 
-// Função para obter o transporte de arquivo atualizado
+// Criar transporte de arquivo atualizado
 const getLogFileTransport = () => {
   const logFile = path.join(logDir, `log-${currentDate}.log`);
   return new winston.transports.File({ filename: logFile, level: 'info' });
 };
 
-// Criação do transporte inicial
+// Criar o transporte inicial
 let fileTransport = getLogFileTransport();
 
-const formatAxiosError = (error: AxiosError) => {
-  let parsedRequestBody;
-  let responseData;
-
-  try {
-    parsedRequestBody = error.config?.data ? JSON.parse(error.config.data) : {};
-  } catch (parseError) {
-    parsedRequestBody = { error: 'Erro ao converter requestBody para JSON' };
+// Função para formatar erros
+const formatError = (error: any, truncateStack = false) => {
+  if (error instanceof AxiosError) {
+    return {
+      status: error?.response?.status || 'Sem status',
+      message: error.message,
+      method: error.config?.method?.toUpperCase() || 'Método desconhecido',
+      url: error.config?.url || 'URL desconhecida',
+      queryParams: error.config?.params || 'Sem parâmetros',
+      requestBody: error.config?.data ? JSON.parse(error.config.data) : 'Sem corpo',
+      responseData: error.response?.data || 'Nenhum dado retornado',
+      headers: error.response?.headers || 'Sem headers',
+      errorCode: error.code || 'Sem código de erro',
+      stack: truncateStack && error.stack ? error.stack.substring(0, 100) + '...' : error.stack,
+    };
+  } else if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: truncateStack && error.stack ? error.stack.substring(0, 100) + '...' : error.stack,
+      name: error.name,
+    };
   }
-
-  try {
-    responseData = error.response?.data ? JSON.stringify(error.response.data, null, 2) : 'Nenhum dado retornado';
-  } catch (parseError) {
-    responseData = 'Erro ao processar dados da resposta';
-  }
-
-  return {
-    status: error?.response?.status || 'Indefinido',
-    message: error?.message || 'Erro desconhecido',
-    method: error?.config?.method?.toUpperCase() || 'Método desconhecido',
-    url: error?.config?.url || 'URL desconhecida',
-    queryParams: error?.config?.params || 'Sem parâmetros',
-    requestBody: parsedRequestBody,
-    responseData,
-    headers: error?.response?.headers || 'Sem headers',
-    userAgent: error?.config?.headers?.['User-Agent'] || 'Indefinido',
-    requestTime: error?.config?.timeout ? `${error?.config?.timeout}ms` : 'Indefinido',
-    errorCode: error?.code || 'Sem código de erro',
-  };
+  return error;
 };
 
+// Formatar exibição no console e arquivo
 const logFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
   winston.format.printf(({ timestamp, level, message }) => {
     const time = DataHora.formatarDataHora(String(timestamp), 'DD/MM/YYYY HH:mm:ss');
-    return `${time} [${level.toUpperCase()}]: ${message}`;
+    const emoji = level === 'error' ? '🔴' : level === 'warn' ? '🟠' : '🟢';
+    return `${emoji} ${time} [${level.toUpperCase()}]: ${message}`;
   }),
 );
 
+// Criar o logger
 const logger = winston.createLogger({
   level: 'info',
   format: logFormat,
   transports: [new winston.transports.Console(), fileTransport],
 });
 
-// Função para verificar se a data mudou e atualizar o arquivo de log
+// Verificar se a data mudou e atualizar o arquivo de log
 const checkAndRotateLogFile = () => {
   const newDate = DataHora.obterDataAtual('DD-MM-YYYY');
   if (newDate !== currentDate) {
     currentDate = newDate;
     fileTransport = getLogFileTransport();
-    logger.clear(); // Remove transporte antigo
-    logger.add(fileTransport); // Adiciona novo transporte
+    logger.clear();
+    logger.add(fileTransport);
   }
 };
 
+// Função de log genérica
 const customLogger = (level: string, message: string, additional?: any) => {
-  checkAndRotateLogFile(); // Checa se precisa trocar o arquivo de log
+  checkAndRotateLogFile(); // Verifica se o log precisa ser rotacionado
 
   let formattedMessage = message;
+  let formattedAdditional;
+
   if (additional !== undefined) {
-    let additionalFormatted;
-    if (additional.isAxiosError) {
-      additionalFormatted = JSON.stringify(formatAxiosError(additional), null, 2);
+    if (additional instanceof Error || additional instanceof AxiosError) {
+      formattedAdditional = JSON.stringify(formatError(additional, true), null, 2); // Truncado para console
+      logger.log({ level, message: `${message}\n${JSON.stringify(formatError(additional, false), null, 2)}` }); // Completo para arquivo
     } else {
-      additionalFormatted = typeof additional === 'object' ? JSON.stringify(additional, null, 2) : String(additional);
+      formattedAdditional = typeof additional === 'object' ? JSON.stringify(additional, null, 2) : String(additional);
     }
-    formattedMessage += `\n${additionalFormatted}`;
+    formattedMessage += `\n${formattedAdditional}`;
   }
 
   logger.log({ level, message: formattedMessage });
 };
 
+// Funções específicas de log
 export const Log = {
   info: (message: string, additional?: any) => customLogger('info', message, additional),
   error: (message: string, additional?: any) => customLogger('error', message, additional),

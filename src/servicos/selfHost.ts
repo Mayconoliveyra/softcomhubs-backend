@@ -1,10 +1,25 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import qs from 'qs';
 
 import { Util } from '../util';
 
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO A TAREFA "selfHost.sincronizarTokens". !!!
 const TIMEOUT_SELF_HOST = 120000; // 2 minutos
+
+const apiClient: AxiosInstance = axios.create({
+  timeout: TIMEOUT_SELF_HOST,
+  headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+});
+
+interface ISelfHostResponse<T = any> {
+  code: number;
+  message: string;
+  human: string;
+  data: T;
+  hasData: boolean;
+  meta: { page: { current?: number | null; prev?: number | null; next?: number | null; count?: number | null } };
+  date_sync: number;
+}
 
 interface ISelfHostProduto {
   produto_id: number;
@@ -16,20 +31,6 @@ interface ISelfHostProduto {
   PrecoB: string;
   PrecoC: string;
   fabricante: string | null;
-}
-
-interface ISelfHostResponse {
-  code: number;
-  message: string;
-  data: ISelfHostProduto[];
-  hasData: boolean;
-  date_sync: number;
-  meta: {
-    page: {
-      current: number;
-      next: number | null;
-    };
-  };
 }
 
 interface IProdutoFormatado {
@@ -76,13 +77,7 @@ const obterClientSecret = async (dominio: string, clientId: string) => {
     const deviceId = gerarDeviceId();
 
     const data = qs.stringify({ client_id: clientId, device_id: deviceId });
-    const response = await axios.post(`${dominio}/device/add`, data, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-      },
-      timeout: TIMEOUT_SELF_HOST,
-    });
+    const response = await apiClient.post<ISelfHostResponse>(`${dominio}/device/add`, data);
 
     const clientSecret = response.data?.data?.client_secret;
     const empresaId = response.data?.data?.empresa_id;
@@ -102,12 +97,7 @@ const obterClientSecret = async (dominio: string, clientId: string) => {
 const obterToken = async (dominio: string, clientId: string, clientSecret: string) => {
   try {
     const data = qs.stringify({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret });
-    const response = await axios.post(`${dominio}/authentication/token`, data, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      timeout: TIMEOUT_SELF_HOST,
-    });
+    const response = await apiClient.post<ISelfHostResponse>(`${dominio}/authentication/token`, data);
 
     const token = response.data?.data?.token;
 
@@ -128,9 +118,8 @@ const obterToken = async (dominio: string, clientId: string, clientSecret: strin
 const consultarVendedorMarketplace = async (dominio: string, token: string) => {
   try {
     const url = `${dominio}/api/funcionario`;
-    const response = await axios.get(url, {
+    const response = await apiClient.get<ISelfHostResponse>(url, {
       headers: { Authorization: `Bearer ${token}` },
-      timeout: TIMEOUT_SELF_HOST,
     });
 
     if (response?.data?.code !== 1 || !Array.isArray(response?.data?.data)) {
@@ -172,9 +161,8 @@ const buscarProdutos = async (
       const url = `${sh_url}/api/produtos/produtos/ultima_sincronizacao/${sh_ultima_sinc}/page/${page}`;
       Util.Log.info(`[SH] | Produtos | Buscando produtos | Página: ${page} | Empresa: ${empresa_id}`);
 
-      const response = await axios.get<ISelfHostResponse>(url, {
+      const response = await apiClient.get<ISelfHostResponse<ISelfHostProduto[]>>(url, {
         headers: { Authorization: `Bearer ${sh_token}` },
-        timeout: TIMEOUT_SELF_HOST,
       });
 
       if (response.data.code !== 1) {
