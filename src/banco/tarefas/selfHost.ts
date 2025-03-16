@@ -115,7 +115,7 @@ const sincronizarProdutos = () => {
                     prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
                   });
 
-                Util.Log.info(`[SH] Produtos | sincronizados com sucesso! | Total: ${produtosInserir.length} | Empresa: ${empresa.uuid}`);
+                Util.Log.info(`[SH] | Produtos | Sincronizados com sucesso! | Total: ${produtosInserir.length} | Empresa: ${empresa.uuid}`);
               } catch (error) {
                 Util.Log.error(`[SH] | Produtos | Erro ao inserir produtos! | Empresa: ${empresa.uuid}`, error);
                 throw error; // 🔹 Reverte a transação em caso de erro
@@ -145,7 +145,7 @@ const sincronizarProdutos = () => {
                   prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
                 });
 
-              Util.Log.info(`[SH] Produtos | sincronizados com sucesso! | Total: 0 | Empresa: ${empresa.uuid}`);
+              Util.Log.info(`[SH] | Produtos | Sincronizados com sucesso! | Total: 0 | Empresa: ${empresa.uuid}`);
             }
           }
         } catch (error) {
