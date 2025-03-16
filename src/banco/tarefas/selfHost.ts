@@ -22,17 +22,16 @@ interface IEmpresaSincConfig {
   sh_ultima_sinc_produtos: number;
   prox_sinc_sh_token: number;
   prox_sinc_sh_produtos: number;
-  prox_sinc_sh_pedidos: number;
   sh_token_exp_datetime: string;
   sh_ultima_sinc_produtos_datetime: string;
   prox_sinc_sh_token_datetime: string;
   prox_sinc_sh_produtos_datetime: string;
-  prox_sinc_sh_pedidos_datetime: string;
   token_valido: boolean;
 }
 
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
+let emExecucaoPedidos = false;
 
 const sincronizarProdutos = () => {
   // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
@@ -237,6 +236,47 @@ const sincronizarTokens = () => {
     } finally {
       emExecucaoTokens = false;
     }
+  });
+};
+
+const sincronizarPedidos = () => {
+  schedule.scheduleJob('*/1 * * * *', async () => {
+    if (emExecucaoPedidos) {
+      Util.Log.warn('[SH] | Pedidos | Tarefa de sincronização de pedidos já está em execução.');
+      return;
+    }
+
+    emExecucaoPedidos = true;
+    /* try {
+      const pedidos = (await Knex(ETableNames.pedidos).where('status', '=', 'pendente').orderBy('created_at', 'ASC').limit(5)) as IPedido[];
+
+      if (!pedidos.length) {
+        emExecucaoPedidos = false;
+        return;
+      }
+
+      await Promise.all(
+        pedidos.map(async (pedido) => {
+          const resultado = await enviarPedidoSelfHost(pedido.sh_url, pedido.sh_token, pedido.dados_pedido);
+
+          if (resultado.sucesso && resultado.venda_id) {
+            await Knex(ETableNames.pedidos).where('id', pedido.id).update({
+              status: 'enviado',
+              venda_id: resultado.venda_id,
+              atualizado_em: Util.DataHora.obterTimestampAtual(),
+            });
+
+            Util.Log.info(`[SH] | Pedidos | Pedido ${pedido.id} enviado com sucesso! Venda ID: ${resultado.venda_id}`);
+          } else {
+            Util.Log.error(`[SH] | Pedidos | Falha ao enviar pedido ${pedido.id}: ${resultado.erro}`);
+          }
+        }),
+      );
+    } catch (error) {
+      Util.Log.warn('[SH] | Pedidos | Erro ao sincronizar pedidos.', error);
+    } finally {
+      emExecucaoPedidos = false;
+    } */
   });
 };
 

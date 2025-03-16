@@ -42,7 +42,6 @@ export async function up(knex: Knex) {
 
       table.bigInteger('prox_sinc_sh_token').notNullable().defaultTo(0);
       table.bigInteger('prox_sinc_sh_produtos').notNullable().defaultTo(0);
-      table.bigInteger('prox_sinc_sh_pedidos').notNullable().defaultTo(0);
 
       table.bigInteger('prox_sinc_p4m_token').notNullable().defaultTo(0);
       table.bigInteger('prox_sinc_p4m_produtos').notNullable().defaultTo(0);

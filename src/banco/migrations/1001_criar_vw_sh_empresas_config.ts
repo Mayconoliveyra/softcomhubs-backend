@@ -22,12 +22,10 @@ export async function up(knex: Knex): Promise<void> {
         sh_ultima_sinc_produtos,
         prox_sinc_sh_token,
         prox_sinc_sh_produtos,
-        prox_sinc_sh_pedidos,
         FROM_UNIXTIME(sh_token_exp) AS sh_token_exp_datetime,
         FROM_UNIXTIME(sh_ultima_sinc_produtos) AS sh_ultima_sinc_produtos_datetime,
         FROM_UNIXTIME(prox_sinc_sh_token) AS prox_sinc_sh_token_datetime,
         FROM_UNIXTIME(prox_sinc_sh_produtos) AS prox_sinc_sh_produtos_datetime,
-        FROM_UNIXTIME(prox_sinc_sh_pedidos) AS prox_sinc_sh_pedidos_datetime,
         ((sh_token_exp) > UNIX_TIMESTAMP(NOW())) AS token_valido
       FROM empresas
       WHERE deleted_at IS NULL 

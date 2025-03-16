@@ -50,6 +50,52 @@ interface IResultadoBusca {
   ultimaDataSync: number;
 }
 
+interface IPedidoRequest {
+  uuid: string; // uuid da api
+  api_guid: string;
+  api_data_hora_venda: number;
+  empresa_id: number;
+  usuario_lancamento_id: number;
+  cliente_id: number;
+  observacao: string;
+  usuario_id: number;
+  item: {
+    produto_empresa_grade_id: string;
+    produto_id: string;
+    preco: number;
+    quantidade: number;
+    desconto_valor_item: number;
+    acrescimo_valor_item: number;
+    preco_compra: number;
+  }[];
+  pagamento: {
+    api_nome_pagamento: string;
+    valor_parcela: number;
+  }[];
+}
+
+interface IPedidoResponse {
+  code: number;
+  message: string;
+  human: string;
+  data: {
+    venda_id?: number;
+    xml?: string | null;
+    status?: boolean;
+    erros?: string | null;
+  } | null;
+  hasData: boolean;
+  meta: {
+    page: {
+      current: number;
+      prev: number | null;
+      next: number | null;
+      count: number;
+    };
+  };
+  date_sync: number;
+}
+
 const extrairDominioEClientId = (url: string) => {
   try {
     const urlObj = new URL(url);
@@ -218,4 +264,30 @@ const buscarProdutos = async (
   }
 };
 
-export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken, buscarProdutos, consultarVendedorMarketplace };
+const enviarPedido = async (dominio: string, token: string, pedido: IPedidoRequest) => {
+  try {
+    const url = `${dominio}/api/vendas/vendas`;
+    const data = qs.stringify({ venda: JSON.stringify(pedido) });
+
+    const response = await apiClient.post<IPedidoResponse>(url, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      maxBodyLength: Infinity,
+    });
+
+    if (!response?.data || response.data.code !== 1 || !response.data.data?.venda_id) {
+      return {
+        sucesso: false,
+        erro: response.data?.human || 'Erro desconhecido',
+      };
+    }
+
+    return { sucesso: true, venda_id: response.data.data.venda_id };
+  } catch (error) {
+    Util.Log.error(`[SH] | Pedido | Erro ao enviar pedido | Pedido: ${pedido.uuid}`, error);
+    return { sucesso: false, erro: 'Erro ao enviar pedido.' };
+  }
+};
+
+export const SelfHost = { extrairDominioEClientId, obterClientSecret, obterToken, buscarProdutos, consultarVendedorMarketplace, enviarPedido };
