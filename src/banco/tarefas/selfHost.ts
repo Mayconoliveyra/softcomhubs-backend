@@ -7,29 +7,28 @@ import { Util } from '../../util';
 import { ETableNames } from '../eTableNames';
 import { Knex } from '../knex';
 
-interface IEmpresaTokenSinc {
+interface IEmpresaSincConfig {
   uuid: string;
+  registro: string;
+  sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
   sh_url: string;
   sh_client_id: string;
   sh_client_secret: string;
-  sh_token_exp: number;
-  sh_token_exp_datetime: string;
-  prox_sinc_sh_token: number;
-  prox_sinc_sh_token_datetime: string;
-}
-
-interface IProdutoSinc {
-  uuid: string;
-  sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
-  sh_url: string;
+  sh_empresa_id: number;
+  sh_usuario_id: number;
+  sh_forma_pagamento: string;
   sh_token: string;
-  sh_token_exp: string;
-  sh_token_exp_datetime: string;
-  prox_sinc_sh_produtos: number;
-  prox_sinc_sh_produtos_datetime: string;
+  sh_token_exp: number;
   sh_ultima_sinc_produtos: number;
+  prox_sinc_sh_token: number;
+  prox_sinc_sh_produtos: number;
+  prox_sinc_sh_pedidos: number;
+  sh_token_exp_datetime: string;
   sh_ultima_sinc_produtos_datetime: string;
-  valido: boolean;
+  prox_sinc_sh_token_datetime: string;
+  prox_sinc_sh_produtos_datetime: string;
+  prox_sinc_sh_pedidos_datetime: string;
+  token_valido: boolean;
 }
 
 let emExecucaoTokens = false;
@@ -50,11 +49,11 @@ const sincronizarProdutos = () => {
       // !! SE FUTURAMENTE AUMENTAR A QUANTIDADE DE CLIENTES, APENAS AJUSTAR O LIMIT
 
       // Buscar todas as empresas que precisam de renovação
-      const empresas = (await Knex(ETableNames.vw_sh_produtos_sinc)
+      const empresas = (await Knex(ETableNames.vw_sh_empresas_sinc_config)
         .where('prox_sinc_sh_produtos', '<=', agora)
-        .andWhere('valido', '=', true)
-        .orderBy('prox_sinc_sh_produtos', 'asc')
-        .limit(5)) as IProdutoSinc[];
+        .andWhere('token_valido', '=', true)
+        .orderBy('prox_sinc_sh_produtos', 'ASC')
+        .limit(5)) as IEmpresaSincConfig[];
 
       if (!empresas.length) return;
 
@@ -183,10 +182,10 @@ const sincronizarTokens = () => {
       // !! SE FUTURAMENTE AUMENTAR A QUANTIDADE DE CLIENTES, APENAS AJUSTAR O LIMIT
 
       // Buscar todas as empresas que precisam de renovação
-      const empresas = (await Knex(ETableNames.vw_sh_empresas_tokens_renovar)
+      const empresas = (await Knex(ETableNames.vw_sh_empresas_sinc_config)
         .where('prox_sinc_sh_token', '<=', agora)
-        .orderBy('prox_sinc_sh_token', 'asc')
-        .limit(5)) as IEmpresaTokenSinc[];
+        .orderBy('prox_sinc_sh_token', 'ASC')
+        .limit(5)) as IEmpresaSincConfig[];
 
       if (!empresas.length) return;
 
