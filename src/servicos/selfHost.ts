@@ -323,7 +323,7 @@ const enviarPedido = async (dominio: string, token: string, pedido: IPedidoReque
 
 const buscarItensPedido = async (uuid: string, empresaId: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
   try {
-    const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', uuid).select('id_produto', 'sku', 'preco', 'preco', 'quantidade', 'desconto');
+    const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', uuid).select('sku', 'preco_original', 'quantidade', 'desconto');
     const itensFormat: IItemPedido[] = [];
     const errosFormat: { mensagem: string }[] = [];
 
@@ -336,7 +336,7 @@ const buscarItensPedido = async (uuid: string, empresaId: string): Promise<{ suc
         itensFormat.push({
           produto_empresa_grade_id: produtoExiste.sh_produto_id,
           produto_id: produtoExiste.sh_sku,
-          preco: item.preco || 0, // Preço pode ser 0
+          preco: item.preco_original || 0, // Preço pode ser 0
           quantidade: item.quantidade || 1, // Quantidade não pode ser 0
           desconto_valor_item: item.desconto || 0,
           acrescimo_valor_item: 0,

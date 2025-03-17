@@ -389,11 +389,14 @@ const sincronizarPedidos = () => {
           const resultadoEnviarPedido = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, pedidoCabecalho);
 
           if (resultadoEnviarPedido.sucesso && resultadoEnviarPedido.venda_id) {
-            await Knex(ETableNames.pedidos).where('uuid', pedido.uuid).update({
-              sh_id_pedido: resultadoEnviarPedido.venda_id.toString(),
-              sh_data_sinc: Util.DataHora.obterDataAtual(),
-              ultima_sinc_erros: null,
-            });
+            await Knex(ETableNames.pedidos)
+              .where('uuid', pedido.uuid)
+              .update({
+                sh_id_pedido: resultadoEnviarPedido.venda_id.toString(),
+                sh_data_sinc: Util.DataHora.obterDataAtual(),
+                ultima_sinc_erros: null,
+                prox_sinc: Util.DataHora.gerarTimestampMM(5, 10), // 5 a 10 minutos // Só pra ficar com valor setado mesmo.
+              });
 
             Util.Log.info(`[SH] | Pedidos | Sucesso no envio do pedido | Pedido: ${pedido.uuid}`);
           } else {
