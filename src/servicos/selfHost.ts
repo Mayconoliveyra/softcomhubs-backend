@@ -296,8 +296,6 @@ const buscarProdutos = async (
 };
 
 const enviarPedido = async (dominio: string, token: string, pedido: IPedidoRequest) => {
-  console.log('pedido', pedido);
-
   try {
     const url = `${dominio}/api/vendas/vendas`;
     const data = qs.stringify({ venda: JSON.stringify(pedido) });
@@ -312,14 +310,14 @@ const enviarPedido = async (dominio: string, token: string, pedido: IPedidoReque
     if (!response?.data || response.data.code !== 1 || !response.data.data?.venda_id) {
       return {
         sucesso: false,
-        erro: response.data?.human || 'Erro desconhecido',
+        erros: [{ mensagem: response.data?.human || 'Erro desconhecido' }],
       };
     }
 
-    return { sucesso: true, venda_id: response.data.data.venda_id };
+    return { sucesso: true, venda_id: response.data.data.venda_id, erros: [] };
   } catch (error) {
     Util.Log.error(`[SH] | Pedido | Erro ao enviar pedido | Pedido: ${pedido.api_guid}`, error);
-    return { sucesso: false, erro: 'Erro ao enviar pedido.' };
+    return { sucesso: false, erros: [{ mensagem: 'Erro ao enviar pedido.' }] };
   }
 };
 
@@ -349,12 +347,18 @@ const buscarItensPedido = async (uuid: string): Promise<{ sucesso: boolean; iten
 
     return { sucesso: !errosFormat.length, itens: itensFormat, erros: errosFormat };
   } catch (error) {
-    Util.Log.error(`[SH] | Pedidos | Erro ao buscar itens | do pedido ${uuid}.`, error);
+    Util.Log.error(`[SH] | Pedidos | Erro ao buscar itens | Pedido: ${uuid}.`, error);
     return { sucesso: false, itens: [], erros: [{ mensagem: 'Erro ao buscar itens do pedido.' }] };
   }
 };
 
-const buscarOuCadastrarCliente = async (dominio: string, token: string, cpfCnpj: string, dadosCliente: IClienteCadastrarSH) => {
+const buscarOuCadastrarCliente = async (
+  dominio: string,
+  token: string,
+  cpfCnpj: string,
+  dadosCliente: IClienteCadastrarSH,
+  pedidoId: string,
+): Promise<{ sucesso: boolean; cliente_id: number; erros: { mensagem: string }[] }> => {
   try {
     const urlConsulta = `${dominio}/api/clientes/clientes/cpf_cnpj/${cpfCnpj}`;
     const responseConsulta = await apiClient.get(urlConsulta, {
@@ -362,10 +366,11 @@ const buscarOuCadastrarCliente = async (dominio: string, token: string, cpfCnpj:
     });
 
     if (responseConsulta.data?.code === 1 && responseConsulta.data?.data?.id) {
-      return { sucesso: true, cliente_id: responseConsulta.data.data.id };
+      return { sucesso: true, cliente_id: responseConsulta.data.data.id, erros: [] };
     }
   } catch (error) {
-    Util.Log.warn(`[SH] | Cliente | Erro ao consultar cliente CPF/CNPJ: ${cpfCnpj}.`, error);
+    // Quase sempre não vai ter cadastrado. Para evitar log de poluição vou deixar comentado.
+    /* Util.Log.warn(`[SH] | Cliente | Cliente não encontrado | CPF/CNPJ: ${cpfCnpj} | Pedido: ${pedidoId}`); */
   }
 
   try {
@@ -376,14 +381,18 @@ const buscarOuCadastrarCliente = async (dominio: string, token: string, cpfCnpj:
     });
 
     if (responseCadastro.data?.code === 1 && responseCadastro.data?.data) {
-      return { sucesso: true, cliente_id: responseCadastro.data.data };
+      return { sucesso: true, cliente_id: responseCadastro.data.data, erros: [] };
+    } else {
+      return {
+        sucesso: false,
+        cliente_id: 0,
+        erros: [{ mensagem: `Cliente não encontrado e não foi possível cadastrar. Erro:${responseCadastro.data?.human} | Pedido: ${pedidoId}` }],
+      };
     }
   } catch (error) {
-    Util.Log.error(`[SH] | Cliente | Erro ao cadastrar cliente CPF/CNPJ: ${cpfCnpj}.`, error);
-    return { sucesso: false, erro: 'Erro ao cadastrar cliente.' };
+    Util.Log.error(`[SH] | Cliente | Erro ao cadastrar | CPF/CNPJ: ${cpfCnpj}| Pedido: ${pedidoId}`, error);
+    return { sucesso: false, cliente_id: 0, erros: [{ mensagem: 'Erro ao cadastrar cliente.' }] };
   }
-
-  return { sucesso: false, erro: 'Cliente não encontrado e não foi possível cadastrar.' };
 };
 
 export const SelfHost = {

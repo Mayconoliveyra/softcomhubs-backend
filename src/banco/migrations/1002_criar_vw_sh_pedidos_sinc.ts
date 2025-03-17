@@ -62,7 +62,9 @@ export async function up(knex: Knex): Promise<void> {
       FROM_UNIXTIME(p.prox_sinc) AS prox_sinc_datetime
     FROM pedidos p
     INNER JOIN vw_sh_empresas_sinc_config v 
-        ON p.empresa_id = v.uuid;
+        ON p.empresa_id = v.uuid
+    WHERE p.sh_id_pedido IS NULL
+    AND p.sh_data_sinc IS NULL;
   `);
 
   Util.Log.info(`# Criado view ${ETableNames.vw_sh_pedidos_sinc}`);

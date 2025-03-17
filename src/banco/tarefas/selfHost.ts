@@ -322,39 +322,48 @@ const sincronizarPedidos = () => {
         return;
       }
 
-      /*  console.log(pedidos); */
       await Promise.all(
         pedidos.map(async (pedido) => {
           const modeloCliente: IClienteCadastrarSH = {
-            bairro: pedido.entrega_bairro || pedido.cobranca_bairro || '',
-            codigo_cidade:pedido.entrega_ibge?Number(pedido.entrega_ibge) || Number(pedido.cobranca_ibge) || null,
+            bairro: pedido.entrega_bairro || pedido.cobranca_bairro || null,
+            codigo_cidade: Number(pedido.entrega_ibge) || Number(pedido.cobranca_ibge) || null,
             cep: pedido.entrega_cep || pedido.cobranca_cep || '',
             cpf_cnpj: pedido.cobranca_documento || '',
             complemento: pedido.entrega_complemento || pedido.cobranca_complemento || '',
-            contato_email: pedido.entrega_cep || pedido.cobranca_cep || '',
-            contato_nome: pedido.cobranca_email || '',
+            contato_email: pedido.cobranca_email || '',
+            contato_nome: '',
             contato_telefone: pedido.entrega_telefone || pedido.cobranca_telefone || '',
-            contribuinte_icms: 1,
+            contribuinte_icms: 9, // No pedido não tem IE, então por padrão vou sempre retornar (9 - Não Contribuinte)
             endereco: pedido.entrega_rua || pedido.cobranca_rua || '',
             inscricao_estadual: '',
             nome: pedido.entrega_nome_destinatario || pedido.cobranca_nome || '',
-            numero: pedido.entrega_numero || pedido.cobranca_cep || '',
-            razao_social: pedido.entrega_cep || pedido.cobranca_numero || '',
+            numero: pedido.entrega_numero || pedido.cobranca_numero || '',
+            razao_social: pedido.entrega_nome_destinatario || pedido.cobranca_nome || '',
             uf: pedido.entrega_estado || pedido.cobranca_estado || '',
             cidade: pedido.entrega_cidade || pedido.cobranca_cidade || '',
           };
 
+          // Consulta e valida os itens do pedido
           const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.uuid);
-          /*   const resultadoCliente = await Servicos.SelfHost.buscarOuCadastrarCliente(pedido.sh_url, pedido.sh_token, pedido.cobranca_documento); */
+          // Consulta ou cadastra o cliente
+          const resultadoCliente = await Servicos.SelfHost.buscarOuCadastrarCliente(
+            pedido.sh_url,
+            pedido.sh_token,
+            pedido.cobranca_documento,
+            modeloCliente,
+            pedido.uuid,
+          );
 
-          if (!resultadoItens.sucesso) {
+          if (!resultadoItens.sucesso || !resultadoCliente.sucesso || !resultadoCliente.cliente_id) {
+            const errosTodos = [...resultadoItens.erros, ...resultadoCliente.erros];
+
             await Knex(ETableNames.pedidos)
               .where('uuid', pedido.uuid)
               .update({
-                prox_sinc: Util.DataHora.gerarTimestampMM(2, 5), //
-                ultima_sinc_erros: Knex.raw('?', [JSON.stringify(resultadoItens.erros)]),
+                prox_sinc: Util.DataHora.gerarTimestampMM(5, 10), // 5 a 10 minutos
+                ultima_sinc_erros: Knex.raw('?', [JSON.stringify(errosTodos)]),
               });
-            Util.Log.error(`[SH] | Pedidos | Item inválido no pedido | Pedido: ${pedido.uuid}`, resultadoItens.erros);
+            Util.Log.error(`[SH] | Pedidos | Não foi possível processar o pedido | Pedido: ${pedido.uuid}`, errosTodos);
             return;
           }
 
@@ -365,7 +374,7 @@ const sincronizarPedidos = () => {
               : Util.DataHora.obterTimestampAtual(),
             empresa_id: pedido.sh_empresa_id,
             usuario_lancamento_id: pedido.sh_usuario_id,
-            cliente_id: 1,
+            cliente_id: resultadoCliente.cliente_id,
             observacao: '',
             usuario_id: pedido.sh_usuario_id,
             item: resultadoItens.itens,
@@ -378,21 +387,24 @@ const sincronizarPedidos = () => {
           };
 
           const resultadoEnviarPedido = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, pedidoCabecalho);
-          console.log(resultadoEnviarPedido);
 
-          /*  const resultado = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, pedido); */
-
-          /*   if (resultado.sucesso && resultado.venda_id) {
-            await Knex(ETableNames.pedidos).where('id', pedido.id).update({
-              status: 'enviado',
-              venda_id: resultado.venda_id,
-              atualizado_em: Util.DataHora.obterTimestampAtual(),
+          if (resultadoEnviarPedido.sucesso && resultadoEnviarPedido.venda_id) {
+            await Knex(ETableNames.pedidos).where('uuid', pedido.uuid).update({
+              sh_id_pedido: resultadoEnviarPedido.venda_id.toString(),
+              sh_data_sinc: Util.DataHora.obterDataAtual(),
+              ultima_sinc_erros: null,
             });
 
-            Util.Log.info(`[SH] | Pedidos | Pedido ${pedido.id} enviado com sucesso! Venda ID: ${resultado.venda_id}`);
+            Util.Log.info(`[SH] | Pedidos | Sucesso no envio do pedido | Pedido: ${pedido.uuid}`);
           } else {
-            Util.Log.error(`[SH] | Pedidos | Falha ao enviar pedido ${pedido.id}: ${resultado.erro}`);
-          } */
+            await Knex(ETableNames.pedidos)
+              .where('uuid', pedido.uuid)
+              .update({
+                prox_sinc: Util.DataHora.gerarTimestampMM(5, 10), // 5 a 10 minutos
+                ultima_sinc_erros: Knex.raw('?', [JSON.stringify(resultadoEnviarPedido.erros)]),
+              });
+            Util.Log.error(`[SH] | Pedidos | Falha ao enviar | Pedido: ${pedido.uuid}: ${resultadoEnviarPedido.erros}`);
+          }
         }),
       );
     } catch (error) {
