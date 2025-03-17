@@ -344,7 +344,7 @@ const sincronizarPedidos = () => {
           };
 
           // Consulta e valida os itens do pedido
-          const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.uuid);
+          const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.uuid, pedido.empresa_id);
           // Consulta ou cadastra o cliente
           const resultadoCliente = await Servicos.SelfHost.buscarOuCadastrarCliente(
             pedido.sh_url,

@@ -321,14 +321,14 @@ const enviarPedido = async (dominio: string, token: string, pedido: IPedidoReque
   }
 };
 
-const buscarItensPedido = async (uuid: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
+const buscarItensPedido = async (uuid: string, empresaId: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
   try {
     const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', uuid).select('id_produto', 'sku', 'preco', 'preco', 'quantidade', 'desconto');
     const itensFormat: IItemPedido[] = [];
     const errosFormat: { mensagem: string }[] = [];
 
     for (const item of itens) {
-      const produtoExiste = await Knex(ETableNames.produtos).where('sh_sku', item.sku).first();
+      const produtoExiste = await Knex(ETableNames.produtos).where('sh_sku', '=', item.sku).andWhere('empresa_id', '=', empresaId).first();
 
       if (!produtoExiste) {
         errosFormat.push({ mensagem: `Produto SKU ${item.sku} não está integrado.` });
