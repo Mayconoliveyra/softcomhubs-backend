@@ -401,7 +401,7 @@ const sincronizarPedidos = () => {
             pagamento: [
               {
                 api_nome_pagamento: pedido.sh_forma_pagamento,
-                valor_parcela: Util.Texto.paraNumero(pedido.valor_total) || 0,
+                valor_parcela: (Util.Texto.paraNumero(pedido.valor_total || 0) || 0) - (Util.Texto.paraNumero(pedido.juros || 0) || 0),
               },
             ],
           };
