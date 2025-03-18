@@ -79,6 +79,8 @@ export const seed = async (knex: Knex) => {
         sinc_fabricante: true,
         ativo: true,
 
+        sh_qrcode_url:
+          'http://59248-eletrosul-28037094000192.softcomtec.cloud/device/add?client_id=b8464a6f-1591-4fc6-a3cb-9ac248516009&empresa_name=MATRIZ&empresa_cnpj=28037094000192&device_name=SOFTCOM_HUBS',
         sh_usuario_id: 1,
         sh_empresa_id: 1,
         sh_forma_pagamento: 'ESPÉCIE',
