@@ -396,6 +396,7 @@ const sincronizarPedidos = () => {
                 250,
               ) || '',
             usuario_id: pedido.sh_usuario_id,
+            vfrete: Util.Texto.paraNumero(pedido.custo_envio) || 0,
             item: resultadoItens.itens,
             pagamento: [
               {

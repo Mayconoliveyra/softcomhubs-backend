@@ -62,6 +62,7 @@ export interface IPedidoRequest {
   cliente_id: number;
   observacao: string;
   usuario_id: number;
+  vfrete: number;
   item: {
     produto_empresa_grade_id: string;
     produto_id: string;
