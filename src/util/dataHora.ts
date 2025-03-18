@@ -26,7 +26,7 @@ moment.locale('pt-br');
  * @returns Data formatada como string.
  */
 const formatarDataHora = (data?: string | Date, formato: TFormatoDataHora = 'YYYY-MM-DD HH:mm:ss'): string => {
-  if (!data) return '';
+  if (!data) return moment().format(formato);
   return moment(data).format(formato);
 };
 
