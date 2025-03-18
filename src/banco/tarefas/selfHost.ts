@@ -324,33 +324,44 @@ const sincronizarPedidos = () => {
 
       await Promise.all(
         pedidos.map(async (pedido) => {
-          const modeloCliente: IClienteCadastrarSH = {
-            bairro: pedido.entrega_bairro || pedido.cobranca_bairro || null,
-            codigo_cidade: Number(pedido.entrega_ibge) || Number(pedido.cobranca_ibge) || null,
-            cep: pedido.entrega_cep || pedido.cobranca_cep || '',
-            cpf_cnpj: pedido.cobranca_documento || '',
-            complemento: pedido.entrega_complemento || pedido.cobranca_complemento || '',
-            contato_email: pedido.cobranca_email || '',
+          Util.Log.info(`[SH] | Pedidos | Iniciado sincronização... | Pedido: ${pedido.uuid}`);
+
+          const modeloClienteInserir: IClienteCadastrarSH = {
+            bairro: Util.Texto.truncarTexto(pedido.entrega_bairro || pedido.cobranca_bairro || '', 50),
+            codigo_cidade: Util.Texto.paraNumero(pedido.entrega_ibge) || Util.Texto.paraNumero(pedido.cobranca_ibge),
+            cep: Util.Texto.truncarTexto(pedido.entrega_cep || pedido.cobranca_cep, 50) || '',
+            cpf_cnpj: Util.Texto.truncarTexto(pedido.cobranca_documento, 50) || '',
+            complemento: Util.Texto.truncarTexto(pedido.entrega_complemento || pedido.cobranca_complemento, 200) || '',
+            contato_email: Util.Texto.truncarTexto(pedido.cobranca_email, 200) || '',
             contato_nome: '',
-            contato_telefone: pedido.entrega_telefone || pedido.cobranca_telefone || '',
-            contribuinte_icms: 9, // No pedido não tem IE, então por padrão vou sempre retornar (9 - Não Contribuinte)
-            endereco: pedido.entrega_rua || pedido.cobranca_rua || '',
+            contato_telefone:
+              pedido.entrega_telefone && pedido.entrega_telefone !== '41999999999'
+                ? Util.Texto.truncarTexto(pedido.entrega_telefone, 50) || ''
+                : pedido.cobranca_telefone && pedido.cobranca_telefone !== '41999999999'
+                ? Util.Texto.truncarTexto(pedido.cobranca_telefone, 50) || ''
+                : '',
+            contribuinte_icms: 9, // Padrão 9 - Não Contribuinte
+            endereco: Util.Texto.truncarTexto(pedido.entrega_rua || pedido.cobranca_rua, 200) || '',
             inscricao_estadual: '',
-            nome: pedido.entrega_nome_destinatario || pedido.cobranca_nome || '',
-            numero: pedido.entrega_numero || pedido.cobranca_numero || '',
-            razao_social: pedido.entrega_nome_destinatario || pedido.cobranca_nome || '',
-            uf: pedido.entrega_estado || pedido.cobranca_estado || '',
-            cidade: pedido.entrega_cidade || pedido.cobranca_cidade || '',
+            nome: Util.Texto.truncarTexto(pedido.entrega_nome_destinatario || pedido.cobranca_nome, 200) || '',
+            numero: Util.Texto.truncarTexto(pedido.entrega_numero || pedido.cobranca_numero, 50) || '',
+            razao_social: Util.Texto.truncarTexto(pedido.entrega_nome_destinatario || pedido.cobranca_nome, 200) || '',
+            uf: Util.Texto.truncarTexto(pedido.entrega_estado || pedido.cobranca_estado, 50) || '',
+            cidade: Util.Texto.truncarTexto(pedido.entrega_cidade || pedido.cobranca_cidade, 50) || '',
           };
+          /* Util.Log.info(`[SH] | TEMP | Pedidos | Cliente modelo`, modeloClienteInserir); */
 
           // Consulta e valida os itens do pedido
+          Util.Log.info(`[SH] | Pedidos | Consultando itens... | Pedido: ${pedido.uuid}`);
           const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.uuid, pedido.empresa_id);
+
           // Consulta ou cadastra o cliente
+          Util.Log.info(`[SH] | Pedidos | Consultando cliente... | CPF/CNPJ: ${pedido.cobranca_documento} | Pedido: ${pedido.uuid}`);
           const resultadoCliente = await Servicos.SelfHost.buscarOuCadastrarCliente(
             pedido.sh_url,
             pedido.sh_token,
             pedido.cobranca_documento,
-            modeloCliente,
+            modeloClienteInserir,
             pedido.uuid,
           );
 
@@ -367,26 +378,35 @@ const sincronizarPedidos = () => {
             return;
           }
 
-          const pedidoCabecalho: IPedidoRequest = {
+          const modeloPedidoInserir: IPedidoRequest = {
             api_guid: pedido.uuid,
             api_data_hora_venda: pedido.criado_canal_venda
-              ? Util.DataHora.converterDataParaTimestamp(pedido.criado_canal_venda)
+              ? Util.DataHora.converterDataParaTimestamp(pedido.criado_canal_venda || '')
               : Util.DataHora.obterTimestampAtual(),
             empresa_id: pedido.sh_empresa_id,
             usuario_lancamento_id: pedido.sh_usuario_id,
             cliente_id: resultadoCliente.cliente_id,
-            observacao: '',
+            observacao:
+              Util.Texto.truncarTexto(
+                `${pedido.canal_venda_nome || ''} | #${pedido.id_pedido_canal_venda || ''} | Estimativa: ${Util.DataHora.formatarDataHora(
+                  pedido.estimativa_entrega || '',
+                  'DD/MM/YY HH:mm',
+                )} | Envio até: ${Util.DataHora.formatarDataHora(pedido.prazo_maximo_envio || '', 'DD/MM/YY HH:mm')} | Obs: ${pedido.observacao || ''}`,
+                250,
+              ) || '',
             usuario_id: pedido.sh_usuario_id,
             item: resultadoItens.itens,
             pagamento: [
               {
                 api_nome_pagamento: pedido.sh_forma_pagamento,
-                valor_parcela: pedido.valor_total,
+                valor_parcela: Util.Texto.paraNumero(pedido.valor_total) || 0,
               },
             ],
           };
+          /* Util.Log.info(`[SH] | TEMP | Pedidos | Peido modelo`, modeloPedidoInserir); */
 
-          const resultadoEnviarPedido = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, pedidoCabecalho);
+          Util.Log.info(`[SH] | Pedidos | Enviando pedido... | Pedido: ${pedido.uuid}`);
+          const resultadoEnviarPedido = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, modeloPedidoInserir);
 
           if (resultadoEnviarPedido.sucesso && resultadoEnviarPedido.venda_id) {
             await Knex(ETableNames.pedidos)

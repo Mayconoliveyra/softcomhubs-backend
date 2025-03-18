@@ -8,7 +8,9 @@ import { Util } from '../util';
 
 const URL_BASE_P4M = 'https://api.plug4market.com.br';
 
-let teste = 1;
+// !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
+const TIMEOUT_P4M = 30000; // 30 segundos
+const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
 
 interface IProdutoP4m {
   description: string; // Descrição do Produto
@@ -188,14 +190,6 @@ export interface IPedidoP4MResponse {
   saleChannelName: string;
 }
 
-// !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
-const TIMEOUT_P4M = 30000; // 30 segundos
-const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
-
-const truncarTexto = (texto: string | null | undefined, limite: number) => {
-  return texto ? texto.substring(0, limite) : null;
-};
-
 const renovarToken = async (refreshToken: string) => {
   try {
     const data = JSON.stringify({ refreshToken });
@@ -319,10 +313,9 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 };
 
 const obterPedidoPlug4Market = async (token: string) => {
-  teste++;
   try {
     const headers = { Authorization: `Bearer ${token}` };
-    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=${teste}&size=1&status=APPROVED&integratedStore=true`, {
+    const response = await axios.get<{ data: IPedidoP4MCabecalho[] }>(`${URL_BASE_P4M}/orders?_page=1&size=1&status=APPROVED&integratedStore=false`, {
       headers,
       timeout: TIMEOUT_P4M,
     });
@@ -365,41 +358,41 @@ const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>
       uuid: uuidCriarPedido,
       id_p4m: pedido.id,
 
-      id_pedido_canal_venda: truncarTexto(pedido.saleChannelOrderId, 255),
-      canal_venda_nome: truncarTexto(pedido.saleChannelName, 255),
+      id_pedido_canal_venda: Util.Texto.truncarTexto(pedido.saleChannelOrderId, 255),
+      canal_venda_nome: Util.Texto.truncarTexto(pedido.saleChannelName, 255),
 
-      cobranca_cidade: truncarTexto(pedido.billing.city, 255),
-      cobranca_pais: truncarTexto(pedido.billing.country, 255),
-      cobranca_bairro: truncarTexto(pedido.billing.district, 255),
-      cobranca_documento: truncarTexto(pedido.billing.documentId, 255),
-      cobranca_email: truncarTexto(pedido.billing.email, 255),
-      cobranca_nome: truncarTexto(pedido.billing.name, 255),
-      cobranca_telefone: truncarTexto(pedido.billing.phone, 255),
-      cobranca_estado: truncarTexto(pedido.billing.state, 255),
-      cobranca_rua: truncarTexto(pedido.billing.street, 255),
-      cobranca_complemento: truncarTexto(pedido.billing.streetComplement, 255),
-      cobranca_numero: truncarTexto(pedido.billing.streetNumber, 255),
+      cobranca_cidade: Util.Texto.truncarTexto(pedido.billing.city, 255),
+      cobranca_pais: Util.Texto.truncarTexto(pedido.billing.country, 255),
+      cobranca_bairro: Util.Texto.truncarTexto(pedido.billing.district, 255),
+      cobranca_documento: Util.Texto.truncarTexto(pedido.billing.documentId, 255),
+      cobranca_email: Util.Texto.truncarTexto(pedido.billing.email, 255),
+      cobranca_nome: Util.Texto.truncarTexto(pedido.billing.name, 255),
+      cobranca_telefone: Util.Texto.truncarTexto(pedido.billing.phone, 255),
+      cobranca_estado: Util.Texto.truncarTexto(pedido.billing.state, 255),
+      cobranca_rua: Util.Texto.truncarTexto(pedido.billing.street, 255),
+      cobranca_complemento: Util.Texto.truncarTexto(pedido.billing.streetComplement, 255),
+      cobranca_numero: Util.Texto.truncarTexto(pedido.billing.streetNumber, 255),
       cobranca_pagador_imposto: pedido.billing.taxPayer || false,
-      cobranca_cep: truncarTexto(pedido.billing.zipCode, 255),
-      cobranca_ibge: truncarTexto(pedido.billing.ibge, 255),
+      cobranca_cep: Util.Texto.truncarTexto(pedido.billing.zipCode, 255),
+      cobranca_ibge: Util.Texto.truncarTexto(pedido.billing.ibge, 255),
 
-      entrega_cidade: truncarTexto(pedido.shipping.city, 255),
-      entrega_pais: truncarTexto(pedido.shipping.country, 255),
-      entrega_bairro: truncarTexto(pedido.shipping.district, 255),
-      entrega_telefone: truncarTexto(pedido.shipping.phone, 255),
-      entrega_nome_destinatario: truncarTexto(pedido.shipping.recipientName, 255),
-      entrega_estado: truncarTexto(pedido.shipping.state, 255),
-      entrega_rua: truncarTexto(pedido.shipping.street, 255),
-      entrega_complemento: truncarTexto(pedido.shipping.streetComplement, 255),
-      entrega_numero: truncarTexto(pedido.shipping.streetNumber, 255),
-      entrega_cep: truncarTexto(pedido.shipping.zipCode, 255),
-      entrega_ibge: truncarTexto(pedido.shipping.ibge, 255),
+      entrega_cidade: Util.Texto.truncarTexto(pedido.shipping.city, 255),
+      entrega_pais: Util.Texto.truncarTexto(pedido.shipping.country, 255),
+      entrega_bairro: Util.Texto.truncarTexto(pedido.shipping.district, 255),
+      entrega_telefone: Util.Texto.truncarTexto(pedido.shipping.phone, 255),
+      entrega_nome_destinatario: Util.Texto.truncarTexto(pedido.shipping.recipientName, 255),
+      entrega_estado: Util.Texto.truncarTexto(pedido.shipping.state, 255),
+      entrega_rua: Util.Texto.truncarTexto(pedido.shipping.street, 255),
+      entrega_complemento: Util.Texto.truncarTexto(pedido.shipping.streetComplement, 255),
+      entrega_numero: Util.Texto.truncarTexto(pedido.shipping.streetNumber, 255),
+      entrega_cep: Util.Texto.truncarTexto(pedido.shipping.zipCode, 255),
+      entrega_ibge: Util.Texto.truncarTexto(pedido.shipping.ibge, 255),
 
-      estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt) : null,
-      prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit) : null,
+      estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt || '') : null,
+      prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit || '') : null,
 
-      criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated) : null,
-      observacao: truncarTexto(pedido.note, 255),
+      criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated || '') : null,
+      observacao: Util.Texto.truncarTexto(pedido.note, 255),
 
       custo_envio: Number(pedido.shippingCost?.toFixed(4)) || 0,
       juros: Number(pedido.interest?.toFixed(4)) || 0,
@@ -411,9 +404,9 @@ const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>
         uuid: Util.UuidV4.gerar(), // Criar um uuid para o item
         pedido_id: uuidCriarPedido,
 
-        id_produto: truncarTexto(item.productId, 255) || '',
-        nome: truncarTexto(item.name, 255) || '',
-        sku: truncarTexto(item.sku, 255) || '',
+        id_produto: Util.Texto.truncarTexto(item.productId, 255) || '',
+        nome: Util.Texto.truncarTexto(item.name, 255) || '',
+        sku: Util.Texto.truncarTexto(item.sku, 255) || '',
         preco: Number(item.price?.toFixed(4)) || 0,
         preco_original: Number(item.originalPrice?.toFixed(4)) || 0,
         preco_venda: Number(item.salePrice?.toFixed(4)) || 0,

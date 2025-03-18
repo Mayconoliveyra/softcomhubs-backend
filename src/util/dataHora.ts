@@ -13,6 +13,7 @@ type TFormatoDataHora =
   | 'MMMM Do YYYY, h:mm:ss a' // Formato longo → Ex: "March 8th 2025, 2:30:45 pm"
   | 'ddd, hA' // Dia abreviado e hora AM/PM → Ex: "Sat, 2PM"
   | 'DD-MM-YYYY' // Data no formato "DD-MM-YYYY" → Ex: "08-03-2025"
+  | 'DD/MM/YY HH:mm'
   | 'DD/MM/YYYY HH:mm:ss'; // Data + Hora no formato brasileiro → Ex: "08/03/2025 14:30:45"
 
 // Configuração global do Moment.js para definir o idioma padrão
@@ -25,6 +26,7 @@ moment.locale('pt-br');
  * @returns Data formatada como string.
  */
 const formatarDataHora = (data?: string | Date, formato: TFormatoDataHora = 'YYYY-MM-DD HH:mm:ss'): string => {
+  if (!data) return '';
   return moment(data).format(formato);
 };
 

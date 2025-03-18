@@ -273,10 +273,10 @@ const buscarProdutos = async (
         return {
           uuid: Util.UuidV4.gerar(),
           empresa_id,
-          sh_nome: produto.nome ? produto.nome.substring(0, 250) : '',
-          sh_preco: preco || 12345.67,
+          sh_nome: Util.Texto.truncarTexto(produto.nome || '', 250) || '',
+          sh_preco: Util.Texto.paraNumero(preco) || 12345.67,
           sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
-          sh_nome_formatado: produto.nome ? removerGradeDoNome(produto.nome).substring(0, 250) : '',
+          sh_nome_formatado: Util.Texto.truncarTexto(removerGradeDoNome(produto.nome || ''), 250) || '',
           sh_sku: produto.id ? produto.id.toString() : '',
           sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? Math.min(Number.MAX_SAFE_INTEGER, parseInt(produto.estoque)) : 0,
           sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : 'Não informado',
@@ -292,6 +292,80 @@ const buscarProdutos = async (
   } catch (error) {
     Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos no SelfHost | Empresa: ${empresa_id}`, error);
     return { produtos: [], ultimaDataSync: sh_ultima_sinc };
+  }
+};
+
+const buscarItensPedido = async (pedidoId: string, empresaId: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
+  try {
+    const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', pedidoId).select('sku', 'preco_original', 'quantidade', 'desconto');
+    const itensFormat: IItemPedido[] = [];
+    const errosFormat: { mensagem: string }[] = [];
+
+    for (const item of itens) {
+      const produtoExiste = await Knex(ETableNames.produtos).where('sh_sku', '=', item.sku).andWhere('empresa_id', '=', empresaId).first();
+
+      if (!produtoExiste) {
+        errosFormat.push({ mensagem: `Produto SKU ${item.sku} não está integrado.` });
+      } else {
+        itensFormat.push({
+          produto_empresa_grade_id: produtoExiste.sh_produto_id,
+          produto_id: produtoExiste.sh_sku,
+          preco: Util.Texto.paraNumero(item.preco_original) || 0, // Preço pode ser 0
+          quantidade: Util.Texto.paraNumero(item.quantidade) || 1, // Quantidade não pode ser 0
+          desconto_valor_item: Util.Texto.paraNumero(item.desconto) || 0,
+          acrescimo_valor_item: 0,
+          preco_compra: 0,
+        });
+      }
+    }
+
+    return { sucesso: !errosFormat.length, itens: itensFormat, erros: errosFormat };
+  } catch (error) {
+    Util.Log.error(`[SH] | Pedidos | Erro ao buscar itens | Pedido: ${pedidoId}.`, error);
+    return { sucesso: false, itens: [], erros: [{ mensagem: 'Erro ao buscar itens do pedido.' }] };
+  }
+};
+
+const buscarOuCadastrarCliente = async (
+  dominio: string,
+  token: string,
+  cpfCnpj: string,
+  dadosCliente: IClienteCadastrarSH,
+  pedidoId: string,
+): Promise<{ sucesso: boolean; cliente_id: number; erros: { mensagem: string }[] }> => {
+  try {
+    const urlConsulta = `${dominio}/api/clientes/clientes/cpf_cnpj/${cpfCnpj}`;
+    const responseConsulta = await apiClient.get<ISelfHostResponse>(urlConsulta, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+
+    if (responseConsulta?.data?.code === 1 && responseConsulta.data?.data?.id) {
+      return { sucesso: true, cliente_id: responseConsulta.data.data.id, erros: [] };
+    }
+  } catch (error) {
+    // Quase sempre não vai ter cadastrado. Para evitar log de poluição vou deixar comentado.
+    /*    Util.Log.warn(`[SH] | Cliente | Cliente não encontrado | CPF/CNPJ: ${cpfCnpj} | Pedido: ${pedidoId}`); */
+  }
+
+  try {
+    const urlCadastro = `${dominio}/api/clientes/clientes`;
+    const data = qs.stringify({ cliente: JSON.stringify(dadosCliente) });
+    const responseCadastro = await apiClient.post<ISelfHostResponse>(urlCadastro, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (responseCadastro.data?.code === 1 && responseCadastro.data?.data) {
+      return { sucesso: true, cliente_id: responseCadastro.data.data, erros: [] };
+    } else {
+      return {
+        sucesso: false,
+        cliente_id: 0,
+        erros: [{ mensagem: `Cliente não encontrado e não foi possível cadastrar. Erro:${responseCadastro?.data?.human} | Pedido: ${pedidoId}` }],
+      };
+    }
+  } catch (error) {
+    Util.Log.error(`[SH] | Cliente | Erro ao cadastrar | CPF/CNPJ: ${cpfCnpj}| Pedido: ${pedidoId}`, error);
+    return { sucesso: false, cliente_id: 0, erros: [{ mensagem: 'Erro ao cadastrar cliente.' }] };
   }
 };
 
@@ -318,80 +392,6 @@ const enviarPedido = async (dominio: string, token: string, pedido: IPedidoReque
   } catch (error) {
     Util.Log.error(`[SH] | Pedido | Erro ao enviar pedido | Pedido: ${pedido.api_guid}`, error);
     return { sucesso: false, erros: [{ mensagem: 'Erro ao enviar pedido.' }] };
-  }
-};
-
-const buscarItensPedido = async (uuid: string, empresaId: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
-  try {
-    const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', uuid).select('sku', 'preco_original', 'quantidade', 'desconto');
-    const itensFormat: IItemPedido[] = [];
-    const errosFormat: { mensagem: string }[] = [];
-
-    for (const item of itens) {
-      const produtoExiste = await Knex(ETableNames.produtos).where('sh_sku', '=', item.sku).andWhere('empresa_id', '=', empresaId).first();
-
-      if (!produtoExiste) {
-        errosFormat.push({ mensagem: `Produto SKU ${item.sku} não está integrado.` });
-      } else {
-        itensFormat.push({
-          produto_empresa_grade_id: produtoExiste.sh_produto_id,
-          produto_id: produtoExiste.sh_sku,
-          preco: item.preco_original || 0, // Preço pode ser 0
-          quantidade: item.quantidade || 1, // Quantidade não pode ser 0
-          desconto_valor_item: item.desconto || 0,
-          acrescimo_valor_item: 0,
-          preco_compra: 0,
-        });
-      }
-    }
-
-    return { sucesso: !errosFormat.length, itens: itensFormat, erros: errosFormat };
-  } catch (error) {
-    Util.Log.error(`[SH] | Pedidos | Erro ao buscar itens | Pedido: ${uuid}.`, error);
-    return { sucesso: false, itens: [], erros: [{ mensagem: 'Erro ao buscar itens do pedido.' }] };
-  }
-};
-
-const buscarOuCadastrarCliente = async (
-  dominio: string,
-  token: string,
-  cpfCnpj: string,
-  dadosCliente: IClienteCadastrarSH,
-  pedidoId: string,
-): Promise<{ sucesso: boolean; cliente_id: number; erros: { mensagem: string }[] }> => {
-  try {
-    const urlConsulta = `${dominio}/api/clientes/clientes/cpf_cnpj/${cpfCnpj}`;
-    const responseConsulta = await apiClient.get(urlConsulta, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-
-    if (responseConsulta.data?.code === 1 && responseConsulta.data?.data?.id) {
-      return { sucesso: true, cliente_id: responseConsulta.data.data.id, erros: [] };
-    }
-  } catch (error) {
-    // Quase sempre não vai ter cadastrado. Para evitar log de poluição vou deixar comentado.
-    /* Util.Log.warn(`[SH] | Cliente | Cliente não encontrado | CPF/CNPJ: ${cpfCnpj} | Pedido: ${pedidoId}`); */
-  }
-
-  try {
-    const urlCadastro = `${dominio}/api/clientes/clientes`;
-    const data = qs.stringify({ cliente: JSON.stringify(dadosCliente) });
-    const responseCadastro = await apiClient.post(urlCadastro, data, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (responseCadastro.data?.code === 1 && responseCadastro.data?.data) {
-      return { sucesso: true, cliente_id: responseCadastro.data.data, erros: [] };
-    } else {
-      return {
-        sucesso: false,
-        cliente_id: 0,
-        erros: [{ mensagem: `Cliente não encontrado e não foi possível cadastrar. Erro:${responseCadastro.data?.human} | Pedido: ${pedidoId}` }],
-      };
-    }
-  } catch (error) {
-    Util.Log.error(`[SH] | Cliente | Erro ao cadastrar | CPF/CNPJ: ${cpfCnpj}| Pedido: ${pedidoId}`, error);
-    return { sucesso: false, cliente_id: 0, erros: [{ mensagem: 'Erro ao cadastrar cliente.' }] };
   }
 };
 
