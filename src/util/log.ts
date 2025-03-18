@@ -36,12 +36,12 @@ const formatError = (error: any, truncateStack = false) => {
       responseData: error.response?.data || 'Nenhum dado retornado',
       headers: error.response?.headers || 'Sem headers',
       errorCode: error.code || 'Sem código de erro',
-      stack: truncateStack && error.stack ? error.stack.substring(0, 100) + '...' : error.stack,
+      stack: truncateStack && error.stack ? error.stack : error.stack,
     };
   } else if (error instanceof Error) {
     return {
       message: error.message,
-      stack: truncateStack && error.stack ? error.stack.substring(0, 100) + '...' : error.stack,
+      stack: truncateStack && error.stack ? error.stack : error.stack,
       name: error.name,
     };
   }
