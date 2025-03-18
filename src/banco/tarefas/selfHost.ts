@@ -8,6 +8,10 @@ import { Util } from '../../util';
 import { ETableNames } from '../eTableNames';
 import { Knex } from '../knex';
 
+let emExecucaoTokens = false;
+let emExecucaoProdutos = false;
+let emExecucaoPedidos = false;
+
 interface IEmpresaSincConfig {
   uuid: string;
   registro: string;
@@ -84,10 +88,6 @@ type IPedidoSinc = {
   prox_sinc: number;
   prox_sinc_datetime: string;
 };
-
-let emExecucaoTokens = false;
-let emExecucaoProdutos = false;
-let emExecucaoPedidos = false;
 
 const sincronizarProdutos = () => {
   // !! ATENÇÃO, NÃO ALTERAR ESSES 3 MINUTOS. !!
