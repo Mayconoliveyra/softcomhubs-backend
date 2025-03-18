@@ -17,6 +17,7 @@ export async function up(knex: Knex) {
 
       table.boolean('sinc_nome').defaultTo(true);
       table.boolean('sinc_preco').defaultTo(true);
+      table.boolean('sinc_preco_custo').defaultTo(true);
       table.boolean('sinc_estoque').defaultTo(true);
       table.boolean('sinc_fabricante').defaultTo(true);
 

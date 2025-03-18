@@ -12,6 +12,7 @@ export async function up(knex: Knex) {
 
       table.string('sh_nome').notNullable();
       table.decimal('sh_preco', 10, 2).notNullable();
+      table.decimal('sh_preco_custo', 10, 2).notNullable();
       table.string('sh_produto_id').notNullable();
       table.string('sh_nome_formatado').notNullable();
       table.string('sh_sku').notNullable();
@@ -20,6 +21,7 @@ export async function up(knex: Knex) {
 
       table.string('p4m_nome');
       table.decimal('p4m_preco', 10, 2);
+      table.decimal('p4m_preco_custo', 10, 2);
       table.string('p4m_produto_id');
       table.string('p4m_nome_formatado');
       table.string('p4m_sku');

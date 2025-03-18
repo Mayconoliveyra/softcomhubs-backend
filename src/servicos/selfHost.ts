@@ -41,6 +41,7 @@ interface IProdutoFormatado {
   empresa_id: string;
   sh_nome: string;
   sh_preco: number;
+  sh_preco_custo: number;
   sh_produto_id: string;
   sh_nome_formatado: string;
   sh_sku: string;
@@ -275,6 +276,7 @@ const buscarProdutos = async (
           empresa_id,
           sh_nome: Util.Texto.truncarTexto(produto.nome || '', 250) || '',
           sh_preco: Util.Texto.paraNumero(preco) || 12345.67,
+          sh_preco_custo: Util.Texto.paraNumero(0) || 0, // SELFHOST NÃO RETORNA PRECO DE COMPRA
           sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
           sh_nome_formatado: Util.Texto.truncarTexto(removerGradeDoNome(produto.nome || ''), 250) || '',
           sh_sku: produto.id ? produto.id.toString() : '',
@@ -297,12 +299,16 @@ const buscarProdutos = async (
 
 const buscarItensPedido = async (pedidoId: string, empresaId: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
   try {
-    const itens = await Knex(ETableNames.pedido_itens).where('pedido_id', pedidoId).select('sku', 'preco_original', 'quantidade', 'desconto');
+    const itens = await Knex(ETableNames.pedido_itens).select('sku', 'preco_original', 'quantidade', 'desconto').where('pedido_id', pedidoId);
     const itensFormat: IItemPedido[] = [];
     const errosFormat: { mensagem: string }[] = [];
 
     for (const item of itens) {
-      const produtoExiste = await Knex(ETableNames.produtos).where('sh_sku', '=', item.sku).andWhere('empresa_id', '=', empresaId).first();
+      const produtoExiste = await Knex(ETableNames.produtos)
+        .select('sh_produto_id', 'sh_sku', 'sh_preco_custo')
+        .where('sh_sku', '=', item.sku)
+        .andWhere('empresa_id', '=', empresaId)
+        .first();
 
       if (!produtoExiste) {
         errosFormat.push({ mensagem: `Produto SKU ${item.sku} não está integrado.` });
@@ -314,7 +320,7 @@ const buscarItensPedido = async (pedidoId: string, empresaId: string): Promise<{
           quantidade: Util.Texto.paraNumero(item.quantidade) || 1, // Quantidade não pode ser 0
           desconto_valor_item: Util.Texto.paraNumero(item.desconto) || 0,
           acrescimo_valor_item: 0,
-          preco_compra: 0,
+          preco_compra: Util.Texto.paraNumero(produtoExiste.sh_preco_custo) || 0,
         });
       }
     }

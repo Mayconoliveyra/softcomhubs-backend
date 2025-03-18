@@ -13,6 +13,7 @@ export async function up(knex: Knex): Promise<void> {
         e.pm4_token,
         p.sh_nome,
         p.sh_preco,
+        p.sh_preco_custo,
         p.sh_produto_id,
         p.sh_nome_formatado,
         p.sh_sku,
@@ -20,6 +21,7 @@ export async function up(knex: Knex): Promise<void> {
         p.sh_marca,
         p.p4m_nome,
         p.p4m_preco,
+        p.p4m_preco_custo,
         p.p4m_produto_id,
         p.p4m_nome_formatado,
         p.p4m_sku,
@@ -31,6 +33,7 @@ export async function up(knex: Knex): Promise<void> {
             WHEN (
                 (e.sinc_nome = 1 AND (IFNULL(p.sh_nome, '') <> IFNULL(p.p4m_nome, '') OR IFNULL(p.sh_nome_formatado, '') <> IFNULL(p.p4m_nome_formatado, '')))
                 OR (e.sinc_preco = 1 AND IFNULL(p.sh_preco, 0) <> IFNULL(p.p4m_preco, 0))
+                OR (e.sinc_preco_custo = 1 AND IFNULL(p.sh_preco_custo, 0) <> IFNULL(p.p4m_preco_custo, 0))
                 OR (e.sinc_estoque = 1 AND IFNULL(p.sh_estoque, 0) <> IFNULL(p.p4m_estoque, 0))
                 OR (e.sinc_fabricante = 1 AND IFNULL(p.sh_marca, '') <> IFNULL(p.p4m_marca, ''))
             ) THEN 'ATUALIZAR'
@@ -38,6 +41,7 @@ export async function up(knex: Knex): Promise<void> {
         END AS status_envio,
         IF(e.sinc_nome = 1, (IFNULL(p.sh_nome, '') <> IFNULL(p.p4m_nome, '') OR IFNULL(p.sh_nome_formatado, '') <> IFNULL(p.p4m_nome_formatado, '')), 0) AS dif_nome,
         IF(e.sinc_preco = 1, IFNULL(p.sh_preco, 0) <> IFNULL(p.p4m_preco, 0), 0) AS dif_preco,
+        IF(e.sinc_preco_custo = 1, IFNULL(p.sh_preco_custo, 0) <> IFNULL(p.p4m_preco_custo, 0), 0) AS dif_preco_custo,
         IF(e.sinc_estoque = 1, IFNULL(p.sh_estoque, 0) <> IFNULL(p.p4m_estoque, 0), 0) AS dif_estoque,
         IF(e.sinc_fabricante = 1, IFNULL(p.sh_marca, '') <> IFNULL(p.p4m_marca, ''), 0) AS dif_marca,
         p.prox_sinc_p4m,

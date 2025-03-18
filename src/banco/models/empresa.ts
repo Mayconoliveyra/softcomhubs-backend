@@ -8,6 +8,7 @@ export interface IEmpresa {
 
   sinc_nome: boolean;
   sinc_preco: boolean;
+  sinc_preco_custo: boolean;
   sinc_estoque: boolean;
   sinc_fabricante: boolean;
 

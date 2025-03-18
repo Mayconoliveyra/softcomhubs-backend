@@ -3,6 +3,7 @@ export interface IProduto {
   empresa_id: string;
   sh_nome: string;
   sh_preco: number;
+  sh_preco_custo: number;
   sh_produto_id: string;
   sh_nome_formatado: string;
   sh_sku: string;
@@ -10,6 +11,7 @@ export interface IProduto {
   sh_marca: string;
   p4m_nome?: string | null;
   p4m_preco?: number | null;
+  p4m_preco_custo?: number | null;
   p4m_produto_id?: string | null;
   p4m_nome_formatado?: string | null;
   p4m_sku?: string | null;

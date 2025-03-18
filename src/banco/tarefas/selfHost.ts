@@ -154,6 +154,7 @@ const sincronizarProdutos = () => {
                       .merge({
                         sh_nome: Knex.raw('VALUES(sh_nome)'),
                         sh_preco: Knex.raw('VALUES(sh_preco)'),
+                        sh_preco_custo: Knex.raw('VALUES(sh_preco_custo)'),
                         sh_nome_formatado: Knex.raw('VALUES(sh_nome_formatado)'),
                         sh_estoque: Knex.raw('VALUES(sh_estoque)'),
                         sh_marca: Knex.raw('VALUES(sh_marca)'),

@@ -18,6 +18,7 @@ interface IProdutoP4m {
   length: number; // Comprimento (em centimetros).
   name: string; // Nome do Produto.
   price: number; // Preço de Produto.
+  costPrice: number; // Preço de custo.
   productId: string; // Código principal do produto (pai)
   productName: string; // Nome do principal do Produto (pai)
   salesChannels: []; // Canais de venda (marketsplaces) onde sera publicado o produto.
@@ -244,6 +245,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.sku = produto.sh_sku;
       data.name = produto.sh_nome;
       data.price = produto.sh_preco;
+      data.costPrice = produto.sh_preco_custo;
       data.stock = produto.sh_estoque;
       data.brand = produto.sh_marca;
       data.productName = produto.sh_nome_formatado;
@@ -252,6 +254,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
 
       // Se está sendo atualizado, atualiza apenas os campos necessários
       if (produto.dif_preco) data.price = produto.sh_preco;
+      if (produto.dif_preco_custo) data.costPrice = produto.sh_preco_custo;
       if (produto.dif_estoque) data.stock = produto.sh_estoque;
       if (produto.dif_marca) data.brand = produto.sh_marca;
       if (produto.dif_nome) {

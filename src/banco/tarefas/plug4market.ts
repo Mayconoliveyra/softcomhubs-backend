@@ -29,6 +29,7 @@ export interface IProdutoSinc {
   pm4_token: string;
   sh_nome: string;
   sh_preco: number;
+  sh_preco_custo: number;
   sh_produto_id: string;
   sh_nome_formatado: string;
   sh_sku: string;
@@ -36,6 +37,7 @@ export interface IProdutoSinc {
   sh_marca: string;
   p4m_nome: string | null;
   p4m_preco: number | null;
+  p4m_preco_custo: number | null;
   p4m_produto_id: string | null;
   p4m_nome_formatado: string | null;
   p4m_sku: string | null;
@@ -44,6 +46,7 @@ export interface IProdutoSinc {
   status_envio: 'TOKEN_EXPIRADO' | 'CADASTRAR' | 'ATUALIZAR' | 'SINCRONIZADA';
   dif_nome: boolean;
   dif_preco: boolean;
+  dif_preco_custo: boolean;
   dif_estoque: boolean;
   dif_marca: boolean;
   prox_sinc_p4m: number;
@@ -65,6 +68,7 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
       camposAtualizar.p4m_nome = produto.sh_nome;
       camposAtualizar.p4m_nome_formatado = produto.sh_nome_formatado;
       camposAtualizar.p4m_preco = produto.sh_preco;
+      camposAtualizar.p4m_preco_custo = produto.sh_preco_custo;
       camposAtualizar.p4m_estoque = produto.sh_estoque;
       camposAtualizar.p4m_marca = produto.sh_marca;
     } else {
@@ -74,6 +78,9 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
       }
       if (produto.dif_preco) {
         camposAtualizar.p4m_preco = produto.sh_preco;
+      }
+      if (produto.dif_preco_custo) {
+        camposAtualizar.p4m_preco_custo = produto.sh_preco_custo;
       }
       if (produto.dif_estoque) {
         camposAtualizar.p4m_estoque = produto.sh_estoque;
