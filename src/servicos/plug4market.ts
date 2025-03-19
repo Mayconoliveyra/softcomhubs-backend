@@ -239,7 +239,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.salesChannels = [];
       data.weight = 1234567; // Peso é gramas
       data.width = 1.234567;
-      data.active = false; // Cadastra inativo como padrão
+      data.active = true; // Cadastra ativo como padrão
 
       data.productId = produto.sh_produto_id;
       data.sku = produto.sh_sku;
