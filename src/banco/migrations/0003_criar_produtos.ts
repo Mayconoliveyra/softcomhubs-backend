@@ -8,7 +8,7 @@ export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.produtos, (table) => {
       table.uuid('uuid').primary().index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
-      table.uuid('empresa_id').notNullable().references('uuid').inTable(ETableNames.empresas);
+      table.uuid('empresa_id').notNullable().references('uuid').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
 
       table.string('sh_nome').notNullable();
       table.decimal('sh_preco', 10, 2).notNullable();
