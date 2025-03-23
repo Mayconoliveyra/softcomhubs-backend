@@ -12,6 +12,7 @@ export async function up(knex: Knex) {
       table.string('codigo', 255).notNullable();
       table.string('nome', 255).notNullable();
       table.bigInteger('canal_codigo').notNullable().references('codigo').inTable(ETableNames.p4m_canais_vendas).onUpdate('RESTRICT').onDelete('RESTRICT');
+      table.boolean('desativado').defaultTo(false);
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));

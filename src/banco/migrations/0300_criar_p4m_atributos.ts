@@ -12,6 +12,7 @@ export async function up(knex: Knex) {
       table.string('codigo', 100).notNullable();
       table.string('nome', 255).notNullable();
       table.enum('tipo', ['TAMANHO', 'COR', 'SABOR', 'VOLTAGEM', 'POTENCIA']).notNullable();
+      table.boolean('desativado').defaultTo(false);
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));

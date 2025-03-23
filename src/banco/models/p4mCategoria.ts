@@ -4,6 +4,7 @@ export interface IP4mCategoria {
   codigo: string;
   nome: string;
   canal_codigo: number;
+  desativado: boolean;
 
   created_at: string;
   updated_at?: string;

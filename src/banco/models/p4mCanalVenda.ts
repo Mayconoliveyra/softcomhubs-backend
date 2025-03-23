@@ -5,6 +5,7 @@ export interface IP4mCanalVenda {
   cnpj?: string | null;
   nome: string;
   canal_p4m: boolean;
+  desativado: boolean;
 
   created_at: string;
   updated_at?: string;
