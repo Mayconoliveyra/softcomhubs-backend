@@ -9,7 +9,7 @@ export async function up(knex: Knex) {
     .createTable(ETableNames.p4m_atributos, (table) => {
       table.bigIncrements('id');
 
-      table.string('codigo', 100).notNullable();
+      table.string('codigo', 24).notNullable().unique();
       table.string('nome', 255).notNullable();
       table.enum('tipo', ['TAMANHO', 'COR', 'SABOR', 'VOLTAGEM', 'POTENCIA']).notNullable();
       table.boolean('desativado').defaultTo(false);

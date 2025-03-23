@@ -39,7 +39,14 @@ export async function up(knex: Knex): Promise<void> {
 
       table.string('marca', 50).nullable().comment('brand - Marca do produto');
 
-      table.string('cor_id', 24).nullable().comment('color - ID da cor do produto');
+      table
+        .string('cor_id', 24)
+        .nullable()
+        .references('codigo')
+        .inTable(ETableNames.p4m_atributos)
+        .onUpdate('RESTRICT')
+        .onDelete('RESTRICT')
+        .comment('color - ID da cor do produto');
 
       table.enu('condicao', ['novo', 'usado']).comment('condition - Condição do produto: novo ou usado');
 
@@ -49,7 +56,14 @@ export async function up(knex: Knex): Promise<void> {
 
       table.string('ean', 50).nullable().comment('ean - Código EAN');
 
-      table.string('sabor_id', 24).nullable().comment('flavor - ID do sabor do produto');
+      table
+        .string('sabor_id', 24)
+        .nullable()
+        .references('codigo')
+        .inTable(ETableNames.p4m_atributos)
+        .onUpdate('RESTRICT')
+        .onDelete('RESTRICT')
+        .comment('flavor - ID do sabor do produto');
 
       table.enu('genero', ['masculino', 'feminino', 'menino', 'menina', 'unissex']).nullable().comment('gender - Gênero destinado ao produto');
 
@@ -94,15 +108,36 @@ export async function up(knex: Knex): Promise<void> {
 
       table.enu('origem', ['nacional', 'importado']).nullable().comment('origin - Origem do produto (tributação)');
 
-      table.string('potencia_id', 24).nullable().comment('potency - ID da potência do produto');
+      table
+        .string('potencia_id', 24)
+        .nullable()
+        .references('codigo')
+        .inTable(ETableNames.p4m_atributos)
+        .onUpdate('RESTRICT')
+        .onDelete('RESTRICT')
+        .comment('potency - ID da potência do produto');
 
       table.boolean('revisado').defaultTo(false).comment('reviewed - Produto revisado (padrão: false)');
 
-      table.string('tamanho_id', 24).nullable().comment('size - ID do tamanho do produto');
+      table
+        .string('tamanho_id', 24)
+        .nullable()
+        .references('codigo')
+        .inTable(ETableNames.p4m_atributos)
+        .onUpdate('RESTRICT')
+        .onDelete('RESTRICT')
+        .comment('size - ID do tamanho do produto');
 
       table.decimal('multiplicador_unidade', 10, 4).nullable().comment('unitMultiplier - Multiplicador da unidade (1 a 4 casas decimais)');
 
-      table.string('voltagem_id', 24).nullable().comment('voltage - ID da voltagem do produto');
+      table
+        .string('voltagem_id', 24)
+        .nullable()
+        .references('codigo')
+        .inTable(ETableNames.p4m_atributos)
+        .onUpdate('RESTRICT')
+        .onDelete('RESTRICT')
+        .comment('voltage - ID da voltagem do produto');
 
       table.decimal('garantia_meses', 5, 2).nullable().comment('warranty - Garantia em meses (aceita decimais)');
 
