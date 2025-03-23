@@ -4,7 +4,7 @@ import { ETableNames } from '../eTableNames';
 import { IAtributo } from '../models/p4mAtributos';
 const { NODE_ENV } = process.env;
 
-type AtributoInsert = Omit<IAtributo, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+type AtributoInsert = Omit<IAtributo, 'id' | 'desativado' | 'created_at' | 'updated_at' | 'deleted_at'>;
 
 export const seed = async (knex: Knex) => {
   if (NODE_ENV === 'production') return;
