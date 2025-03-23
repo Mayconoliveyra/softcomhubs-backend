@@ -7,7 +7,7 @@ import { ETableNames } from '../eTableNames';
 export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.canais_vendas, (table) => {
-      table.uuid('uuid').primary().index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
+      table.bigIncrements('id');
 
       table.bigInteger('codigo').notNullable().unique();
       table.string('cnpj', 50).nullable();

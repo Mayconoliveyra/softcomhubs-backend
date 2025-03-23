@@ -1,5 +1,5 @@
 export interface ICanalVenda {
-  uuid: string;
+  id: number;
 
   codigo: number;
   cnpj?: string | null;

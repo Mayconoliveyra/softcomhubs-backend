@@ -1,7 +1,7 @@
 export interface IP4mCategoria {
-  uuid: string;
+  id: number;
 
-  codigo: number;
+  codigo: string;
   nome: string;
   canal_codigo: number;
 

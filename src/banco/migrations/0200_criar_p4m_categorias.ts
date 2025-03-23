@@ -7,9 +7,9 @@ import { ETableNames } from '../eTableNames';
 export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.p4m_categorias, (table) => {
-      table.uuid('uuid').primary().index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
+      table.bigIncrements('id');
 
-      table.bigInteger('codigo').notNullable();
+      table.string('codigo', 255).notNullable();
       table.string('nome', 255).notNullable();
       table.bigInteger('canal_codigo').notNullable().references('codigo').inTable(ETableNames.canais_vendas).onUpdate('RESTRICT').onDelete('RESTRICT');
 
