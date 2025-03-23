@@ -1,5 +1,13 @@
 export interface IP4mProduto {
-  id: number | null;
+  id: number;
+
+  empresa_id: number;
+  produto_id?: number | null;
+
+  pers_nome: boolean;
+  pers_estoque: boolean;
+  pers_preco_venda: boolean;
+  pers_preco_custo: boolean;
 
   nome?: string | null;
   descricao: string | null;

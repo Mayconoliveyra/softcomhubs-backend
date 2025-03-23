@@ -7,10 +7,10 @@ import { ETableNames } from '../eTableNames';
 export async function up(knex: Knex): Promise<void> {
   return knex.schema
     .createTable(ETableNames.p4m_produtos, (table) => {
-      table.bigIncrements('id').primary().comment('Identificador interno');
+      table.bigIncrements('id');
 
-      table.bigInteger('empresa_id').notNullable().references('id').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
-      table.bigInteger('produto_id').nullable().references('id').inTable(ETableNames.produtos).onUpdate('RESTRICT').onDelete('RESTRICT');
+      table.bigInteger('empresa_id').unsigned().notNullable().references('id').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
+      table.bigInteger('produto_id').unsigned().nullable().references('id').inTable(ETableNames.produtos).onUpdate('RESTRICT').onDelete('RESTRICT');
 
       table.boolean('pers_nome').defaultTo(false);
       table.boolean('pers_estoque').defaultTo(false);
