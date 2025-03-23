@@ -3,6 +3,7 @@ import { IItemPedido } from '../../models/ItemPedido';
 import { IAtributo } from '../../models/p4mAtributos';
 import { IP4mCanalVenda } from '../../models/p4mCanalVenda';
 import { IP4mCategoria } from '../../models/p4mCategoria';
+import { IP4mProduto } from '../../models/p4mProduto';
 import { IPedido } from '../../models/pedido';
 import { IProduto } from '../../models/produto';
 import { IUsuario } from '../../models/usuario';
@@ -17,5 +18,6 @@ declare module 'knex/types/tables' {
     p4m_canais_vendas: IP4mCanalVenda;
     p4m_categorias: IP4mCategoria;
     p4m_atributos: IAtributo;
+    p4m_produtos: IP4mProduto;
   }
 }
