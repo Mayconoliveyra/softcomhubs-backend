@@ -11,6 +11,7 @@
     "server": "pm2 start ./build/index.js --name softcomhubs --env production"
   },
   "dependencies": {
+    "knex": "3.1.0",
     "axios": "^1.4.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -18,7 +19,6 @@
     "express": "^4.19.2",
     "http-status-codes": "^2.2.0",
     "jsonwebtoken": "^8.5.1",
-    "knex": "2.5.1",
     "moment": "2.30.1",
     "morgan-body": "^2.6.9",
     "mysql2": "3.6.0",

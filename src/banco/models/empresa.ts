@@ -1,4 +1,5 @@
 export interface IEmpresa {
+  id: number;
   uuid: string;
 
   fantasia: string;

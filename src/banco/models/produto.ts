@@ -1,4 +1,5 @@
 export interface IProduto {
+  id: number;
   uuid: string;
   empresa_id: string;
   sh_nome: string;
