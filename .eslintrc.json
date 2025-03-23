@@ -21,7 +21,18 @@
       "warn",
       {
         "newlinesBetween": "always",
-        "groups": [["module"], ["/banco/"], ["/configs/"], ["/controladores/"], ["/middlewares/"], ["/repositorios/"], ["/rotas/"], ["/servicos/"], ["/util/"]],
+        "groups": [
+          ["module"],
+          ["/banco/"],
+          ["/configs/"],
+          ["/controladores/"],
+          ["/middlewares/"],
+          ["/repositorios/"],
+          ["/rotas/"],
+          ["/servicos/"],
+          ["/tarefas/"],
+          ["/util/"]
+        ],
         "alphabetize": { "order": "asc", "ignoreCase": true }
       }
     ],

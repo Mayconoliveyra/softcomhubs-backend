@@ -1,13 +1,13 @@
 import schedule from 'node-schedule';
 
-import { Servicos } from '../../servicos';
+import { ETableNames } from '../banco/eTableNames';
+import { Knex } from '../banco/knex';
+import { IItemPedido } from '../banco/models/ItemPedido';
+import { IPedido } from '../banco/models/pedido';
 
-import { Util } from '../../util';
+import { Servicos } from '../servicos';
 
-import { ETableNames } from '../eTableNames';
-import { Knex } from '../knex';
-import { IItemPedido } from '../models/ItemPedido';
-import { IPedido } from '../models/pedido';
+import { Util } from '../util';
 
 interface IEmpresaTokenSinc {
   uuid: string;

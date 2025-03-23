@@ -1,5 +1,5 @@
 import { Knex } from './banco/knex';
-import { Tarefas } from './banco/tarefas';
+import { Tarefas } from './tarefas';
 
 import { Configs } from './configs';
 

@@ -1,12 +1,12 @@
 import schedule from 'node-schedule';
 
-import { Servicos } from '../../servicos';
-import { IClienteCadastrarSH, IPedidoRequest } from '../../servicos/selfHost';
+import { ETableNames } from '../banco/eTableNames';
+import { Knex } from '../banco/knex';
 
-import { Util } from '../../util';
+import { Servicos } from '../servicos';
+import { IClienteCadastrarSH, IPedidoRequest } from '../servicos/selfHost';
 
-import { ETableNames } from '../eTableNames';
-import { Knex } from '../knex';
+import { Util } from '../util';
 
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;

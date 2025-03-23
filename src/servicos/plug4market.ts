@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 
 import { IItemPedido } from '../banco/models/ItemPedido';
 import { IPedido } from '../banco/models/pedido';
-import { IProdutoSinc } from '../banco/tarefas/plug4market';
+import { IProdutoSinc } from '../tarefas/plug4market';
 
 import { Util } from '../util';
 
