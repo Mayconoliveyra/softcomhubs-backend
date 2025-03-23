@@ -1,4 +1,4 @@
-export interface ICanalVenda {
+export interface IP4mCanalVenda {
   id: number;
 
   codigo: number;

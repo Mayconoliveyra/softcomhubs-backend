@@ -6,10 +6,10 @@ const { NODE_ENV } = process.env;
 export const seed = async (knex: Knex) => {
   if (NODE_ENV === 'production') return;
 
-  const result = await knex(ETableNames.canais_vendas).first();
+  const result = await knex(ETableNames.p4m_canais_vendas).first();
   if (result) return;
 
-  await knex(ETableNames.canais_vendas)
+  await knex(ETableNames.p4m_canais_vendas)
     .insert([
       {
         codigo: 1,
@@ -565,6 +565,6 @@ export const seed = async (knex: Knex) => {
       },
     ])
     .then(() => {
-      console.log(`# Inserido dados na tabela ${ETableNames.canais_vendas}`);
+      console.log(`# Inserido dados na tabela ${ETableNames.p4m_canais_vendas}`);
     });
 };

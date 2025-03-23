@@ -8,6 +8,7 @@ export enum ETableNames {
   vw_sh_pedidos_sinc = 'vw_sh_pedidos_sinc',
   vw_p4m_empresas_sinc_config = 'vw_p4m_empresas_sinc_config',
   vw_p4m_produtos_sinc = 'vw_p4m_produtos_sinc',
-  canais_vendas = 'canais_vendas',
+  p4m_canais_vendas = 'p4m_canais_vendas',
   p4m_categorias = 'p4m_categorias',
+  p4m_atributos = 'p4m_atributos',
 }
