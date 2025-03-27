@@ -62,5 +62,36 @@ const paraNumero = (valor: unknown): number | null => {
   return isNaN(numero) ? null : numero;
 };
 
+/**
+ * Trata um valor como string, retornando `undefined` se não for string válida.
+ * @param valor Valor a ser tratado
+ * @returns string tratada ou undefined
+ */
+const tratarComoString = (valor: unknown): string | undefined => {
+  return typeof valor === 'string' ? valor.trim() : undefined;
+};
+
+/**
+ * Trata um valor como número, retornando `undefined` se não for numérico.
+ * @param valor Valor a ser tratado
+ * @returns número tratado ou undefined
+ */
+const tratarComoNumero = (valor: unknown): number | undefined => {
+  const convertido = Number(valor);
+  return isNaN(convertido) ? undefined : convertido;
+};
+
+/**
+ * Trata um valor como boolean, aceitando string 'true'/'false' ou boolean direto.
+ * @param valor Valor a ser tratado
+ * @returns boolean tratado ou undefined
+ */
+const tratarComoBoolean = (valor: unknown): boolean | undefined => {
+  if (typeof valor === 'boolean') return valor;
+  if (valor === 'true') return true;
+  if (valor === 'false') return false;
+  return undefined;
+};
+
 // Exportando as funções dentro de um objeto Texto para facilitar a importação e organização.
-export const Texto = { truncarTexto, ehTamanhoExato, paraNumero };
+export const Texto = { truncarTexto, ehTamanhoExato, paraNumero, tratarComoString, tratarComoNumero, tratarComoBoolean };

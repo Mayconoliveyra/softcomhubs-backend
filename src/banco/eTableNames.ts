@@ -12,4 +12,5 @@ export enum ETableNames {
   p4m_categorias = 'p4m_categorias',
   p4m_atributos = 'p4m_atributos',
   p4m_produtos = 'p4m_produtos',
+  p4m_migracao_produtos = 'p4m_migracao_produtos',
 }

@@ -1,7 +1,8 @@
 import { Knex } from './banco/knex';
-import { Tarefas } from './tarefas';
 
 import { Configs } from './configs';
+
+import { Tarefas } from './tarefas';
 
 const { NODE_ENV } = process.env;
 
@@ -24,6 +25,7 @@ const startServer = () => {
   Tarefas.Plug4market.sincronizarTokens();
   Tarefas.Plug4market.sincronizarProdutos();
   Tarefas.Plug4market.sincronizarPedidos();
+  Tarefas.Plug4market.sincronizarMigracaoBaixarPlanilha();
 };
 
 Knex.migrate

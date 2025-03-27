@@ -1,7 +1,10 @@
 import axios, { AxiosError } from 'axios';
+import * as XLSX from 'xlsx';
 
 import { IItemPedido } from '../banco/models/ItemPedido';
+import { IP4mMigracaoProduto } from '../banco/models/p4mMigracaoProduto';
 import { IPedido } from '../banco/models/pedido';
+
 import { IProdutoSinc } from '../tarefas/plug4market';
 
 import { Util } from '../util';
@@ -11,6 +14,9 @@ const URL_BASE_P4M = 'https://api.plug4market.com.br';
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
 const TIMEOUT_P4M = 30000; // 30 segundos
 const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
+
+const URL_BASE_VTRINA = 'https://api.vtrina.com/api/migration/validation/export';
+const TIMEOUT_VTRINA = 300000; // 30 segundos
 
 interface IProdutoP4m {
   description: string; // Descrição do Produto
@@ -190,6 +196,30 @@ export interface IPedidoP4MResponse {
 
   saleChannelName: string;
 }
+
+type IValidacaoProdutoP4M = Omit<IP4mMigracaoProduto, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+
+const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M => ({
+  canal_codigo: linha.canal_codigo,
+  feedback: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['FEEDBACK']), 255) || null,
+  sku: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['SKU']), 255) || null,
+  produto_pai_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO PAI (CANAL)']), 255) || null,
+  variacao_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID VARIAÇÃO (CANAL)']), 255) || null,
+  processar: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['PROCESSAR']), 255) || null,
+  titulo_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['TITULO (CANAL)']), 255) || null,
+  cod_ref_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['COD REF (CANAL)']), 255) || null,
+  preco_canal: Util.Texto.tratarComoNumero(linha['PREÇO']) || null,
+  estoque_canal: Util.Texto.tratarComoNumero(linha['ESTOQUE (CANAL)']) || null,
+  status_canal: Util.Texto.tratarComoBoolean(linha['STATUS (CANAL)']) || null,
+  estoque_diferente: Util.Texto.tratarComoBoolean(linha['ESTOQUE DIFERENTE?']) || null,
+  preco_diferente: Util.Texto.tratarComoBoolean(linha['PREÇO  DIFERENTE?']) || null,
+  produto_plataforma_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO (Plataforma)']), 255) || null,
+  variante_plataforma_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID VARIANTE (Plataforma)']), 255) || null,
+  cod_erp_plataforma: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['COD ERP (Plataforma)']), 255) || null,
+  nome_plataforma: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['NOME (Plataforma)']), 255) || null,
+  estoque_plataforma: Util.Texto.tratarComoNumero(linha['ESTOQUE (Plataforma)']) || null,
+  preco_plataforma: Util.Texto.tratarComoNumero(linha['PREÇO (Plataforma)']) || null,
+});
 
 const renovarToken = async (refreshToken: string) => {
   try {
@@ -449,9 +479,49 @@ const confirmarPedido = async (token: string, id_p4m: string, uuidPedido: string
   }
 };
 
+const importarPlanilhaValidacao = async (storeId: string, canalId: number) => {
+  try {
+    const url = `${URL_BASE_VTRINA}?storeId=${storeId}&marketplace=${canalId}`;
+
+    const response = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      timeout: TIMEOUT_VTRINA,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+
+    const workbook = XLSX.read(response.data, { type: 'buffer' });
+    const primeiraAba = workbook.SheetNames[0];
+    const linhas = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
+    const dadosFormatados: IValidacaoProdutoP4M[] = (linhas as Record<string, any>[]).map((linha) => {
+      const dado = formatarLinhaExcel(linha);
+      return {
+        ...dado,
+        canal_codigo: canalId,
+      };
+    });
+
+    return {
+      sucesso: true,
+      dados: dadosFormatados,
+      erro: null,
+    };
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    Util.Log.error('[P4M] | Migração | Erro ao baixar planilha', axiosError);
+
+    return {
+      sucesso: false,
+      dados: null,
+      erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
+    };
+  }
+};
+
 export const Plug4market = {
   renovarToken,
   cadastrarOuAtualizarProduto,
   obterPedidoPlug4Market,
   confirmarPedido,
+  importarPlanilhaValidacao,
 };

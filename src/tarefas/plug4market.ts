@@ -56,6 +56,7 @@ export interface IProdutoSinc {
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
 let emExecucaoPedidos = false;
+let emExecucaoMigracaoProdutosBaixarPlanilha = false;
 
 const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
   try {
@@ -419,4 +420,26 @@ const sincronizarPedidos = () => {
   });
 };
 
-export const Plug4market = { sincronizarProdutos, sincronizarTokens, sincronizarPedidos };
+const sincronizarMigracaoBaixarPlanilha = () => {
+  // !! ATENÇÃO, NÃO ALTERAR ESSES 1 MINUTO. !!
+  // Executa a cada 1 minuto
+  schedule.scheduleJob(`*/1 * * * *`, async () => {
+    if (emExecucaoMigracaoProdutosBaixarPlanilha) {
+      Util.Log.warn('[P4M] | Migração | Baixar planilha | Sincronização já em execução.');
+      return;
+    }
+    emExecucaoMigracaoProdutosBaixarPlanilha = true;
+
+    try {
+      const teste = await Servicos.Plug4market.importarPlanilhaValidacao('65294214bae0ed00018b96e6', 26);
+      console.log('importarPlanilhaValidacao');
+      console.log(teste);
+    } catch (error) {
+      Util.Log.error('[P4M] | Migração | Baixar planilha | Erro ao baixar planilha', error);
+    } finally {
+      emExecucaoMigracaoProdutosBaixarPlanilha = false;
+    }
+  });
+};
+
+export const Plug4market = { sincronizarProdutos, sincronizarTokens, sincronizarPedidos, sincronizarMigracaoBaixarPlanilha };
