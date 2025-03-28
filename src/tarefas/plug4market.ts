@@ -431,9 +431,15 @@ const sincronizarMigracaoBaixarPlanilha = () => {
     emExecucaoMigracaoProdutosBaixarPlanilha = true;
 
     try {
-      const teste = await Servicos.Plug4market.importarPlanilhaValidacao('65294214bae0ed00018b96e6', 26);
-      console.log('importarPlanilhaValidacao');
-      console.log(teste);
+      /*  const teste1 = await Servicos.Plug4market.migracaoConsultarStatus(1, '65294214bae0ed00018b96e6', 26);
+      const teste2 = await Servicos.Plug4market.migracaoSolicitar(1, '65294214bae0ed00018b96e6', 26);
+      const teste3 = await Servicos.Plug4market.migracaoBaixarPlanilha(1, '65294214bae0ed00018b96e6', 26);
+      const teste4 = await Servicos.Plug4market.migracaoConsultarStatus(1, '65294214bae0ed00018b96e6', 26);
+
+      console.log(teste1);
+      console.log(teste2);
+      console.log(teste3);
+      console.log(teste4); */
     } catch (error) {
       Util.Log.error('[P4M] | Migração | Baixar planilha | Erro ao baixar planilha', error);
     } finally {

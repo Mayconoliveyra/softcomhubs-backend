@@ -9,13 +9,15 @@ import { IProdutoSinc } from '../tarefas/plug4market';
 
 import { Util } from '../util';
 
+const { P4M_USER_ID, P4M_USER_EMAIL, P4M_USER_NOME, P4M_USER_TOKEN } = process.env;
+
 const URL_BASE_P4M = 'https://api.plug4market.com.br';
 
 // !!! ATENÇÃO ESSE TIMEOUT ESTÁ RELACIONADO AS TAREFAS!!!
 const TIMEOUT_P4M = 30000; // 30 segundos
 const TIMEOUT_P4M_TOKEN = 120000; // 2 minutos
 
-const URL_BASE_VTRINA = 'https://api.vtrina.com/api/migration/validation/export';
+const URL_BASE_VTRINA = 'https://api.vtrina.com/api';
 const TIMEOUT_VTRINA = 300000; // 30 segundos
 
 interface IProdutoP4m {
@@ -195,6 +197,24 @@ export interface IPedidoP4MResponse {
   totalCommission: number | null; // Valor de comissionamento do canal de vendas
 
   saleChannelName: string;
+}
+
+interface IP4mConsultarStatusMigracaoSync {
+  _id: string;
+  name: string;
+  status: string;
+  label: string;
+  startDate: string;
+  endDate: string | null;
+  quantity: number;
+  userEmail: string;
+  userName: string;
+  updatedAt: string;
+}
+
+interface IP4mConsultarStatusMigracao {
+  total: number;
+  syncs: IP4mConsultarStatusMigracaoSync[];
 }
 
 type IValidacaoProdutoP4M = Omit<IP4mMigracaoProduto, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
@@ -479,9 +499,93 @@ const confirmarPedido = async (token: string, id_p4m: string, uuidPedido: string
   }
 };
 
-const importarPlanilhaValidacao = async (storeId: string, canalId: number) => {
+const migracaoConsultarStatus = async (empresaId: number, storeId: string, canalId: number) => {
   try {
-    const url = `${URL_BASE_VTRINA}?storeId=${storeId}&marketplace=${canalId}`;
+    const url = `${URL_BASE_VTRINA}/migration?storeId=${storeId}&size=1&page=1&marketplace=${canalId}`;
+
+    const response = await axios.get<IP4mConsultarStatusMigracao>(url, {
+      timeout: TIMEOUT_VTRINA,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+
+    if (!response?.data?.syncs?.[0]._id) {
+      return {
+        sucesso: true,
+        dados: null,
+        erro: null,
+      };
+    } else {
+      return {
+        sucesso: true,
+        dados: response.data.syncs[0],
+        erro: null,
+      };
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    Util.Log.error(`[P4M] | Migração | Erro ao consultar status | Empresa: ${empresaId}`, axiosError);
+
+    return {
+      sucesso: false,
+      dados: null,
+      erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
+    };
+  }
+};
+
+const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: number) => {
+  try {
+    const url = `${URL_BASE_VTRINA}/migration/validation`;
+
+    const body = {
+      storeId: storeId,
+      marketplace: canalId,
+      userEmail: P4M_USER_EMAIL,
+      userName: P4M_USER_NOME,
+      userId: P4M_USER_ID,
+      userToken: P4M_USER_TOKEN,
+      label: 'Obter Produtos',
+    };
+    const response = await axios.post(url, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-access-token': body.userToken,
+      },
+      timeout: TIMEOUT_VTRINA,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+
+    if (response.status === 202) {
+      return {
+        sucesso: true,
+        dados: 'Solicitado com sucesso!',
+        erro: null,
+      };
+    } else {
+      Util.Log.error(`[P4M] | Migração | Status inválido na solicitação | Status: ${response.status} | Empresa: ${empresaId} `, response.data);
+      return {
+        sucesso: false,
+        dados: null,
+        erro: `Status inesperado: ${response.status}`,
+      };
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    Util.Log.error(`[P4M] | Migração | Erro realizar solicitação | Empresa: ${empresaId}`, axiosError);
+
+    return {
+      sucesso: false,
+      dados: null,
+      erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
+    };
+  }
+};
+
+const migracaoBaixarPlanilha = async (empresaId: number, storeId: string, canalId: number) => {
+  try {
+    const url = `${URL_BASE_VTRINA}/migration/validation/export?storeId=${storeId}&marketplace=${canalId}`;
 
     const response = await axios.get<ArrayBuffer>(url, {
       responseType: 'arraybuffer',
@@ -508,7 +612,7 @@ const importarPlanilhaValidacao = async (storeId: string, canalId: number) => {
     };
   } catch (error) {
     const axiosError = error as AxiosError;
-    Util.Log.error('[P4M] | Migração | Erro ao baixar planilha', axiosError);
+    Util.Log.error(`[P4M] | Migração | Erro ao baixar planilha | Empresa: ${empresaId}`, axiosError);
 
     return {
       sucesso: false,
@@ -523,5 +627,7 @@ export const Plug4market = {
   cadastrarOuAtualizarProduto,
   obterPedidoPlug4Market,
   confirmarPedido,
-  importarPlanilhaValidacao,
+  migracaoConsultarStatus,
+  migracaoSolicitar,
+  migracaoBaixarPlanilha,
 };

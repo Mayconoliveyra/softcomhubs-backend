@@ -11,4 +11,6 @@ router.get('/teste-api', (req, res) => res.status(StatusCodes.OK).json('API TEST
 
 router.post('/empresa/autenticacao-selfhost', Controladores.Empresa.autenticacaoSelfHostValidacao, Controladores.Empresa.autenticacaoSelfHost);
 
+router.post('/p4m/migracao/solicitar', Controladores.Plug4Market.solicitarMigracaoValidacao, Controladores.Plug4Market.solicitarMigracao);
+
 export { router };
