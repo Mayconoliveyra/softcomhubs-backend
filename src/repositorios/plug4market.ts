@@ -13,28 +13,11 @@ const criarSolicitacao = async (dado: Omit<IP4mMigracaoSolicitacao, 'id' | 'crea
     return false;
   }
 };
-const cancelarSolicitacoesAtivas = async (empresaId: number, canalCodigo: number): Promise<boolean> => {
-  try {
-    await Knex(ETableNames.p4m_migracao_solicitacao)
-      .where('empresa_id', empresaId)
-      .andWhere('canal_codigo', canalCodigo)
-      .whereIn('status', ['CONSULTAR_PLANILHA', 'EDITANDO', 'PROCESSANDO'])
-      .update({
-        status: 'CANCELADO',
-      });
-
-    return true;
-  } catch (error) {
-    Util.Log.error('Erro ao cancelar solicitações ativas', error);
-    return false;
-  }
-};
 const verificarSolicitacaoPendente = async (empresaId: string | number, canalId: number): Promise<boolean> => {
   try {
     const registros = await Knex(ETableNames.p4m_migracao_solicitacao)
       .select('id')
       .where('empresa_id', empresaId)
-      .whereNull('deleted_at')
       .whereNotIn('status', ['FINALIZADO', 'ERRO', 'CANCELADO'])
       .andWhere('canal_codigo', canalId);
 
@@ -63,4 +46,4 @@ const atualizarPorId = async (id: number, dados: Partial<IP4mMigracaoSolicitacao
   }
 };
 
-export const Plug4Market = { criarSolicitacao, cancelarSolicitacoesAtivas, verificarSolicitacaoPendente, obterSolicitacaoPorId, atualizarPorId };
+export const Plug4Market = { criarSolicitacao, verificarSolicitacaoPendente, obterSolicitacaoPorId, atualizarPorId };

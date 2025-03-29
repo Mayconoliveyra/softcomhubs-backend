@@ -98,26 +98,32 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
   if (!registro || registro.status !== 'PROCESSANDO') {
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: {
-        default: 'Não existe nenhum registro pendente de consulta, atualize a página e tente novamente.',
+        default: 'Registro não está pendente de consulta, atualize a página e tente novamente.',
       },
     });
   }
 
   const resultado = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, '661d5e877510d9e548438f00', registro.canal_codigo);
 
-  if (!resultado.sucesso) {
+  if (!resultado.sucesso || !resultado.dados) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       errors: { default: resultado.erro },
     });
   }
 
-  // Atualiza prod_encontrados com o valor retornado
-  const totalProdutos = resultado.dados?.quantity || 0;
+  const statusProcessamentoAtual = resultado.dados.status;
 
+  if (statusProcessamentoAtual === 'COMPLETE') {
+    const teste3 = await Servicos.Plug4market.migracaoBaixarPlanilha(registro.empresa_id, '661d5e877510d9e548438f00', registro.canal_codigo);
+    console.log(teste3);
+  }
+
+  // Atualiza prod_encontrados com o valor retornado
+  const totalProdutos = resultado.dados.quantity || 0;
   const atualizado = await Repositorios.Plug4Market.atualizarPorId(id, {
+    status: statusProcessamentoAtual === 'COMPLETE' ? 'PROCESSANDO' : 'ERRO',
     prod_encontrados: totalProdutos,
   });
-
   if (!atualizado) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       errors: { default: 'Erro ao atualizar dados da solicitação.' },

@@ -3,7 +3,7 @@ export interface IP4mMigracaoProduto {
 
   canal_codigo: number;
   feedback: string | null;
-  sku: string | null;
+  sku: number | null;
   produto_pai_canal_id: string | null;
   variacao_canal_id: string | null;
   processar: string | null;

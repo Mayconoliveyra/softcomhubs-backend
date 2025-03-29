@@ -222,7 +222,7 @@ type IValidacaoProdutoP4M = Omit<IP4mMigracaoProduto, 'id' | 'created_at' | 'upd
 const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M => ({
   canal_codigo: linha.canal_codigo,
   feedback: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['FEEDBACK']), 255) || null,
-  sku: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['SKU']), 255) || null,
+  sku: Util.Texto.tratarComoNumero(linha['SKU']) || null,
   produto_pai_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO PAI (CANAL)']), 255) || null,
   variacao_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID VARIAÇÃO (CANAL)']), 255) || null,
   processar: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['PROCESSAR']), 255) || null,

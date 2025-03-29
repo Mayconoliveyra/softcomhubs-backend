@@ -11,7 +11,7 @@ export async function up(knex: Knex): Promise<void> {
       table.bigInteger('canal_codigo').notNullable().references('codigo').inTable(ETableNames.p4m_canais_vendas).onUpdate('RESTRICT').onDelete('RESTRICT');
 
       table.text('feedback').nullable();
-      table.string('sku', 255).nullable();
+      table.bigInteger('sku').nullable();
 
       table.string('produto_pai_canal_id', 255).nullable();
       table.string('variacao_canal_id', 255).nullable();
