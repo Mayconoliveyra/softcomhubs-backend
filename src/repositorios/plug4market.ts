@@ -13,18 +13,19 @@ const criarSolicitacao = async (dado: Omit<IP4mMigracaoSolicitacao, 'id' | 'crea
     return false;
   }
 };
-const verificarSolicitacaoPendente = async (empresaId: string | number, canalId: number): Promise<boolean> => {
+const verificarSolicitacaoProcessamento = async (empresaId: number, canalId: number): Promise<boolean> => {
   try {
     const registros = await Knex(ETableNames.p4m_migracao_solicitacao)
       .select('id')
-      .where('empresa_id', empresaId)
-      .whereNotIn('status', ['FINALIZADO', 'ERRO', 'CANCELADO'])
-      .andWhere('canal_codigo', canalId);
+      .where('empresa_id', '=', empresaId)
+      .where('status', '=', 'PROCESSANDO')
+      .andWhere('canal_codigo', canalId)
+      .first();
 
-    return registros.length > 0;
+    return !!registros;
   } catch (error) {
-    Util.Log.error('Erro ao verificar solicitação de migração pendente', error);
-    return false;
+    Util.Log.error('Erro ao verificar se já tinha solicitação em processamento', error);
+    return true;
   }
 };
 const obterSolicitacaoPorId = async (id: number): Promise<IP4mMigracaoSolicitacao | undefined> => {
@@ -46,4 +47,4 @@ const atualizarPorId = async (id: number, dados: Partial<IP4mMigracaoSolicitacao
   }
 };
 
-export const Plug4Market = { criarSolicitacao, verificarSolicitacaoPendente, obterSolicitacaoPorId, atualizarPorId };
+export const Plug4Market = { criarSolicitacao, verificarSolicitacaoProcessamento, obterSolicitacaoPorId, atualizarPorId };

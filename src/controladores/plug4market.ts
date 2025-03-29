@@ -29,10 +29,20 @@ const solicitarMigracaoValidacao = Middlewares.validacao((getSchema) => ({
 }));
 
 const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response) => {
-  const { empresaId, canalId, p4mEmpresaId } = req.body;
+  const { empresaId, p4mEmpresaId, canalId } = req.body;
 
-  // Verificar se já existe solicitação pendente
-  const pendente = await Repositorios.Plug4Market.verificarSolicitacaoPendente(empresaId, canalId);
+  const empresa = await Repositorios.Empresa.buscarPorId(empresaId);
+
+  if (!empresa) {
+    return res.status(StatusCodes.NOT_FOUND).json({ errors: { default: 'Empresa não encontrada.' } });
+  }
+
+  if (!empresa.ativo) {
+    return res.status(StatusCodes.NOT_FOUND).json({ errors: { default: 'Empresa inativa.' } });
+  }
+
+  // Verificar se já existe solicitação em processamento
+  const pendente = await Repositorios.Plug4Market.verificarSolicitacaoProcessamento(empresaId, canalId);
 
   if (pendente) {
     return res.status(StatusCodes.CONFLICT).json({

@@ -41,7 +41,7 @@ const autenticacaoSelfHost = async (req: Request<{}, {}, IAuthRequest>, res: Res
   const { uuid, sh_qrcode_url } = req.body;
 
   try {
-    const empresa = await Repositorios.Empresa.buscarPorId(uuid);
+    const empresa = await Repositorios.Empresa.buscarPorUuid(uuid);
 
     if (!empresa) {
       return res.status(StatusCodes.NOT_FOUND).json({ errors: { default: 'Empresa não encontrada.' } });

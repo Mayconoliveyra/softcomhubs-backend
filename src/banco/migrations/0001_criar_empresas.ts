@@ -24,6 +24,7 @@ export async function up(knex: Knex) {
 
       table.enum('sinc_preco_tipo', ['PADRAO', 'A', 'B', 'C']).defaultTo('PADRAO').notNullable();
 
+      table.string('pm4_id', 24); //ID da Loja no Marketplace (app.plug4market)
       table.text('pm4_token');
       table.text('pm4_token_renovacao');
       table.bigInteger('pm4_token_exp').notNullable().defaultTo(0);

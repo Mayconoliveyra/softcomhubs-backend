@@ -25,6 +25,8 @@ export const seed = async (knex: Knex) => {
         sinc_fabricante: true,
         ativo: true,
 
+        pm4_id: '65294214bae0ed00018b96e6', //ID da Loja no Marketplace (app.plug4market)
+
         sh_usuario_id: 1,
         sh_empresa_id: 1,
         sh_forma_pagamento: 'ESPÉCIE',
