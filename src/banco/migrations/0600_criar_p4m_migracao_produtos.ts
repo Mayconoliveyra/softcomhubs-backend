@@ -19,7 +19,6 @@ export async function up(knex: Knex): Promise<void> {
 
       table.text('feedback').nullable();
       table.bigInteger('sku').nullable();
-
       table.string('produto_id_canal', 255).nullable();
       table.string('variacao_id_canal', 255).nullable();
       table.string('ean_canal', 255).nullable();
