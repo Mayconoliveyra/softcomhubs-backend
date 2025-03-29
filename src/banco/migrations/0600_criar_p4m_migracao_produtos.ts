@@ -20,23 +20,17 @@ export async function up(knex: Knex): Promise<void> {
       table.text('feedback').nullable();
       table.bigInteger('sku').nullable();
 
-      table.string('produto_pai_canal_id', 255).nullable();
-      table.string('variacao_canal_id', 255).nullable();
-      table.string('processar', 255).nullable();
+      table.string('produto_id_canal', 255).nullable();
+      table.string('variacao_id_canal', 255).nullable();
+      table.string('ean_canal', 255).nullable();
       table.string('titulo_canal', 255).nullable();
       table.string('cod_ref_canal', 255).nullable();
       table.decimal('preco_canal', 10, 2).nullable();
       table.integer('estoque_canal').nullable();
       table.boolean('status_canal').nullable();
-      table.boolean('estoque_diferente').nullable();
-      table.boolean('preco_diferente').nullable();
 
-      table.string('produto_plataforma_id', 255).nullable();
-      table.string('variante_plataforma_id', 255).nullable();
-      table.string('cod_erp_plataforma', 255).nullable();
-      table.string('nome_plataforma', 255).nullable();
-      table.integer('estoque_plataforma').nullable();
-      table.decimal('preco_plataforma', 10, 2).nullable();
+      table.string('cor_canal', 255).nullable();
+      table.string('tamanho_canal', 255).nullable();
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));

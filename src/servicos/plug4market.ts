@@ -223,22 +223,16 @@ const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M =>
   solicitacao_id: linha.solicitacao_id,
   feedback: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['FEEDBACK']), 255) || null,
   sku: Util.Texto.tratarComoNumero(linha['SKU']) || null,
-  produto_pai_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO PAI (CANAL)']), 255) || null,
-  variacao_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID VARIAÇÃO (CANAL)']), 255) || null,
-  processar: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['PROCESSAR']), 255) || null,
+  produto_id_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO PAI (CANAL)']), 255) || null,
+  variacao_id_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID VARIAÇÃO (CANAL)']), 255) || null,
+  ean_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['EAN (CANAL)']), 255) || null,
   titulo_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['TITULO (CANAL)']), 255) || null,
   cod_ref_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['COD REF (CANAL)']), 255) || null,
   preco_canal: Util.Texto.tratarComoNumero(linha['PREÇO']) || null,
   estoque_canal: Util.Texto.tratarComoNumero(linha['ESTOQUE (CANAL)']) || null,
   status_canal: Util.Texto.tratarComoBoolean(linha['STATUS (CANAL)']) || null,
-  estoque_diferente: Util.Texto.tratarComoBoolean(linha['ESTOQUE DIFERENTE?']) || null,
-  preco_diferente: Util.Texto.tratarComoBoolean(linha['PREÇO  DIFERENTE?']) || null,
-  produto_plataforma_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO (Plataforma)']), 255) || null,
-  variante_plataforma_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID VARIANTE (Plataforma)']), 255) || null,
-  cod_erp_plataforma: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['COD ERP (Plataforma)']), 255) || null,
-  nome_plataforma: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['NOME (Plataforma)']), 255) || null,
-  estoque_plataforma: Util.Texto.tratarComoNumero(linha['ESTOQUE (Plataforma)']) || null,
-  preco_plataforma: Util.Texto.tratarComoNumero(linha['PREÇO (Plataforma)']) || null,
+  cor_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['COR']), 255) || null,
+  tamanho_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['TAMANHO']), 255) || null,
 });
 
 const renovarToken = async (refreshToken: string) => {
@@ -579,7 +573,7 @@ const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: nu
     return {
       sucesso: false,
       dados: null,
-      erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
+      erro: JSON.stringify(axiosError.response?.data || 'Erro desconhecido'),
     };
   }
 };
