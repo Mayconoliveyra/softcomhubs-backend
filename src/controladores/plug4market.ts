@@ -15,7 +15,6 @@ import { Util } from '../util';
 type IBodyProps = {
   empresaId: number;
   canalId: number;
-  p4mEmpresaId: string;
 };
 
 const solicitarMigracaoValidacao = Middlewares.validacao((getSchema) => ({
@@ -23,13 +22,12 @@ const solicitarMigracaoValidacao = Middlewares.validacao((getSchema) => ({
     yup.object().shape({
       empresaId: yup.number().required(),
       canalId: yup.number().required(),
-      p4mEmpresaId: yup.string().required().trim().length(24),
     }),
   ),
 }));
 
 const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response) => {
-  const { empresaId, p4mEmpresaId, canalId } = req.body;
+  const { empresaId, canalId } = req.body;
 
   const empresa = await Repositorios.Empresa.buscarPorId(empresaId);
 
@@ -39,6 +37,10 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
 
   if (!empresa.ativo) {
     return res.status(StatusCodes.NOT_FOUND).json({ errors: { default: 'Empresa inativa.' } });
+  }
+
+  if (!empresa.pm4_id) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'ID da Loja no Marketplace (app.plug4market) não foi informado.' } });
   }
 
   // Verificar se já existe solicitação em processamento
@@ -52,7 +54,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     });
   }
 
-  const resultado = await Servicos.Plug4market.migracaoSolicitar(empresaId, p4mEmpresaId, canalId);
+  const resultado = await Servicos.Plug4market.migracaoSolicitar(empresaId, empresa.pm4_id, canalId);
 
   if (!resultado.sucesso) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -60,7 +62,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     });
   }
 
-  const consultarStatus = await Servicos.Plug4market.migracaoConsultarStatus(empresaId, p4mEmpresaId, canalId);
+  const consultarStatus = await Servicos.Plug4market.migracaoConsultarStatus(empresaId, empresa.pm4_id, canalId);
   if (!consultarStatus.sucesso) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       errors: { default: consultarStatus.erro },
@@ -73,9 +75,6 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     solicitado_em: Util.DataHora.obterDataAtual(),
     finalizado_em: null,
     prod_encontrados: 0,
-    prod_sem_sku: 0,
-    prod_com_sku: 0,
-    prod_migrados: 0,
     erros: null,
     prox_sinc: 0,
     status: 'PROCESSANDO',
@@ -89,7 +88,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     });
   }
 
-  return res.status(StatusCodes.ACCEPTED).json(resultado.dados);
+  return res.status(StatusCodes.NO_CONTENT).send();
 };
 
 const consultarStatusMigracaoValidacao = Middlewares.validacao((getSchema) => ({
@@ -113,34 +112,58 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
     });
   }
 
-  const resultado = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, '661d5e877510d9e548438f00', registro.canal_codigo);
+  if (!registro.pm4_id) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'ID da Loja no Marketplace (app.plug4market) não foi informado.' } });
+  }
+
+  const resultado = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, registro.pm4_id, registro.canal_codigo);
 
   if (!resultado.sucesso || !resultado.dados) {
+    await Repositorios.Plug4Market.atualizarPorId(id, {
+      status: 'ERRO',
+      erros: resultado.erro,
+    });
+
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       errors: { default: resultado.erro },
     });
   }
 
-  const statusProcessamentoAtual = resultado.dados.status;
-
-  if (statusProcessamentoAtual === 'COMPLETE') {
-    const teste3 = await Servicos.Plug4market.migracaoBaixarPlanilha(registro.empresa_id, '661d5e877510d9e548438f00', registro.canal_codigo);
-    console.log(teste3);
-  }
-
   // Atualiza prod_encontrados com o valor retornado
   const totalProdutos = resultado.dados.quantity || 0;
-  const atualizado = await Repositorios.Plug4Market.atualizarPorId(id, {
-    status: statusProcessamentoAtual === 'COMPLETE' ? 'PROCESSANDO' : 'ERRO',
-    prod_encontrados: totalProdutos,
-  });
-  if (!atualizado) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      errors: { default: 'Erro ao atualizar dados da solicitação.' },
+  const statusProcessamentoAtual = resultado.dados.status;
+
+  if (statusProcessamentoAtual === 'PROCESSING') {
+    const atualizado = await Repositorios.Plug4Market.atualizarPorId(id, {
+      prod_encontrados: totalProdutos,
     });
+    if (!atualizado) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        errors: { default: 'Erro ao atualizar dados da solicitação.' },
+      });
+    }
+  } else if (statusProcessamentoAtual === 'COMPLETE') {
+    const dadosMigrados = await Servicos.Plug4market.migracaoBaixarPlanilha(registro.empresa_id, id, registro.pm4_id, registro.canal_codigo);
+
+    const inserido = await Repositorios.Plug4Market.inserirProdutosMigracao(dadosMigrados.dados || []);
+    if (!inserido) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        errors: { default: 'Erro ao salvar dados da planilha.' },
+      });
+    }
+
+    const atualizado = await Repositorios.Plug4Market.atualizarPorId(id, {
+      status: 'EDITANDO',
+      prod_encontrados: totalProdutos,
+    });
+    if (!atualizado) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        errors: { default: 'Erro ao atualizar dados da solicitação.' },
+      });
+    }
   }
 
-  return res.status(StatusCodes.OK).json(resultado.dados);
+  return res.status(StatusCodes.NO_CONTENT).send();
 };
 
 export const Plug4Market = {

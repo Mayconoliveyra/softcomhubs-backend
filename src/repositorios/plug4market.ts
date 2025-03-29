@@ -2,6 +2,8 @@ import { ETableNames } from '../banco/eTableNames';
 import { Knex } from '../banco/knex';
 import { IP4mMigracaoSolicitacao } from '../banco/models/p4mSolicitacao';
 
+import { IValidacaoProdutoP4M } from '../servicos/plug4market';
+
 import { Util } from '../util';
 
 const criarSolicitacao = async (dado: Omit<IP4mMigracaoSolicitacao, 'id' | 'created_at'>): Promise<number | false> => {
@@ -28,9 +30,13 @@ const verificarSolicitacaoProcessamento = async (empresaId: number, canalId: num
     return true;
   }
 };
-const obterSolicitacaoPorId = async (id: number): Promise<IP4mMigracaoSolicitacao | undefined> => {
+const obterSolicitacaoPorId = async (id: number): Promise<(IP4mMigracaoSolicitacao & { pm4_id: string }) | undefined> => {
   try {
-    return await Knex(ETableNames.p4m_migracao_solicitacao).select('*').where('id', id).first();
+    return await Knex(ETableNames.p4m_migracao_solicitacao)
+      .select(`${ETableNames.p4m_migracao_solicitacao}.*`, `${ETableNames.empresas}.pm4_id`)
+      .innerJoin(ETableNames.empresas, `${ETableNames.empresas}.id`, `${ETableNames.p4m_migracao_solicitacao}.empresa_id`)
+      .where(`${ETableNames.p4m_migracao_solicitacao}.id`, id)
+      .first();
   } catch (error) {
     Util.Log.error('Erro ao buscar solicitação por ID', error);
     return undefined;
@@ -47,4 +53,16 @@ const atualizarPorId = async (id: number, dados: Partial<IP4mMigracaoSolicitacao
   }
 };
 
-export const Plug4Market = { criarSolicitacao, verificarSolicitacaoProcessamento, obterSolicitacaoPorId, atualizarPorId };
+const inserirProdutosMigracao = async (dados: IValidacaoProdutoP4M[]) => {
+  try {
+    if (!dados.length) return true;
+
+    await Knex(ETableNames.p4m_migracao_produtos).insert(dados);
+    return true;
+  } catch (error) {
+    Util.Log.error('Erro ao inserir produtos migrados', error);
+    return false;
+  }
+};
+
+export const Plug4Market = { criarSolicitacao, verificarSolicitacaoProcessamento, obterSolicitacaoPorId, atualizarPorId, inserirProdutosMigracao };

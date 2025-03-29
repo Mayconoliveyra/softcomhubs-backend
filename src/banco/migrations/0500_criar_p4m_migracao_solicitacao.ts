@@ -15,9 +15,6 @@ export async function up(knex: Knex): Promise<void> {
       table.timestamp('solicitado_em').notNullable();
       table.timestamp('finalizado_em').nullable();
       table.bigInteger('prod_encontrados').notNullable().defaultTo(0);
-      table.bigInteger('prod_sem_sku').notNullable().defaultTo(0);
-      table.bigInteger('prod_com_sku').notNullable().defaultTo(0);
-      table.bigInteger('prod_migrados').notNullable().defaultTo(0);
 
       table.text('erros', 'longtext');
 

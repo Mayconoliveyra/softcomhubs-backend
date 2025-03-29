@@ -5,9 +5,6 @@ export interface IP4mMigracaoSolicitacao {
   solicitado_em: string;
   finalizado_em?: string | null;
   prod_encontrados: number;
-  prod_sem_sku: number;
-  prod_com_sku: number;
-  prod_migrados: number;
   erros?: string | null;
   prox_sinc: number;
   status: 'PROCESSANDO' | 'EDITANDO' | 'FINALIZADO' | 'CANCELADO' | 'ERRO';

@@ -8,7 +8,14 @@ export async function up(knex: Knex): Promise<void> {
   return knex.schema
     .createTable(ETableNames.p4m_migracao_produtos, (table) => {
       table.bigIncrements('id');
-      table.bigInteger('canal_codigo').notNullable().references('codigo').inTable(ETableNames.p4m_canais_vendas).onUpdate('RESTRICT').onDelete('RESTRICT');
+      table
+        .bigInteger('solicitacao_id')
+        .unsigned()
+        .notNullable()
+        .references('id')
+        .inTable(ETableNames.p4m_migracao_solicitacao)
+        .onUpdate('RESTRICT')
+        .onDelete('RESTRICT');
 
       table.text('feedback').nullable();
       table.bigInteger('sku').nullable();
@@ -33,7 +40,6 @@ export async function up(knex: Knex): Promise<void> {
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
-      table.timestamp('deleted_at').nullable();
     })
     .then(() => {
       Util.Log.info(`# Criado tabela ${ETableNames.p4m_migracao_produtos}`);

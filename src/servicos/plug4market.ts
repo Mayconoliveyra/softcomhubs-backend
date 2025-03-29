@@ -217,10 +217,10 @@ interface IP4mConsultarStatusMigracao {
   syncs: IP4mConsultarStatusMigracaoSync[];
 }
 
-type IValidacaoProdutoP4M = Omit<IP4mMigracaoProduto, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+export type IValidacaoProdutoP4M = Omit<IP4mMigracaoProduto, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
 
 const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M => ({
-  canal_codigo: linha.canal_codigo,
+  solicitacao_id: linha.solicitacao_id,
   feedback: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['FEEDBACK']), 255) || null,
   sku: Util.Texto.tratarComoNumero(linha['SKU']) || null,
   produto_pai_canal_id: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['ID PRODUTO PAI (CANAL)']), 255) || null,
@@ -509,11 +509,12 @@ const migracaoConsultarStatus = async (empresaId: number, storeId: string, canal
       maxBodyLength: Infinity,
     });
 
-    if (!response?.data?.syncs?.[0]._id) {
+    const statusConsulta = response?.data?.syncs?.[0].status;
+    if (statusConsulta !== 'PROCESSING' && statusConsulta !== 'COMPLETE') {
       return {
         sucesso: false,
         dados: null,
-        erro: { mensagem: 'Não foi encontrado nenhum registro na fila de migração' },
+        erro: 'Não foi possível realizar a consulta. Por favor, entre em contato com o suporte.',
       };
     } else {
       return {
@@ -529,7 +530,7 @@ const migracaoConsultarStatus = async (empresaId: number, storeId: string, canal
     return {
       sucesso: false,
       dados: null,
-      erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
+      erro: JSON.stringify(axiosError.response?.data || 'Erro desconhecido'),
     };
   }
 };
@@ -583,7 +584,7 @@ const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: nu
   }
 };
 
-const migracaoBaixarPlanilha = async (empresaId: number, storeId: string, canalId: number) => {
+const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, storeId: string, canalId: number) => {
   try {
     const url = `${URL_BASE_VTRINA}/migration/validation/export?storeId=${storeId}&marketplace=${canalId}`;
 
@@ -597,13 +598,9 @@ const migracaoBaixarPlanilha = async (empresaId: number, storeId: string, canalI
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const primeiraAba = workbook.SheetNames[0];
     const linhas = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
-    const dadosFormatados: IValidacaoProdutoP4M[] = (linhas as Record<string, any>[]).map((linha) => {
-      const dado = formatarLinhaExcel(linha);
-      return {
-        ...dado,
-        canal_codigo: canalId,
-      };
-    });
+    const dadosFormatados: IValidacaoProdutoP4M[] = (linhas as Record<string, any>[]).map((linha) =>
+      formatarLinhaExcel({ ...linha, solicitacao_id: solicitacaoId }),
+    );
 
     return {
       sucesso: true,

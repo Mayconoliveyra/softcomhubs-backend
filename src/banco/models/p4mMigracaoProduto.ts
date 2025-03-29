@@ -1,7 +1,7 @@
 export interface IP4mMigracaoProduto {
   id: number;
 
-  canal_codigo: number;
+  solicitacao_id: number;
   feedback: string | null;
   sku: number | null;
   produto_pai_canal_id: string | null;
@@ -23,5 +23,4 @@ export interface IP4mMigracaoProduto {
 
   created_at: string;
   updated_at?: string;
-  deleted_at?: string;
 }
