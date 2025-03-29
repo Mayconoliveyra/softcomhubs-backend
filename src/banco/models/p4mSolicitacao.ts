@@ -1,6 +1,6 @@
 export interface IP4mMigracaoSolicitacao {
   id: number;
-  empresa_id: string;
+  empresa_id: number;
   canal_codigo: number;
   solicitado_em: string;
   finalizado_em?: string | null;
@@ -10,9 +10,8 @@ export interface IP4mMigracaoSolicitacao {
   prod_migrados: number;
   erros?: string | null;
   prox_sinc: number;
-  status: 'CONSULTADO_PLANILHA' | 'EDITANDO' | 'PROCESSANDO' | 'FINALIZADO' | 'CANCELADO' | 'ERRO';
+  status: 'PROCESSANDO' | 'EDITANDO' | 'FINALIZADO' | 'CANCELADO' | 'ERRO';
 
   created_at: string;
   updated_at?: string | null;
-  deleted_at?: string | null;
 }

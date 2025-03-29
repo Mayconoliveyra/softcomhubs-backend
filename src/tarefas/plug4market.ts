@@ -431,6 +431,15 @@ const sincronizarMigracaoBaixarPlanilha = () => {
     emExecucaoMigracaoProdutosBaixarPlanilha = true;
 
     try {
+      const result = await Knex(ETableNames.p4m_migracao_solicitacao)
+        .select(`${ETableNames.p4m_migracao_solicitacao}.*`)
+        .innerJoin(ETableNames.empresas, `${ETableNames.p4m_migracao_solicitacao}.empresa_id`, `${ETableNames.empresas}.id`)
+        .where(`${ETableNames.p4m_migracao_solicitacao}.status`, 'CONSULTAR_PLANILHA')
+        .andWhere(`${ETableNames.empresas}.ativo`, true);
+
+      console.log(result);
+      if (!result.length) return;
+
       /*  const teste1 = await Servicos.Plug4market.migracaoConsultarStatus(1, '65294214bae0ed00018b96e6', 26);
       const teste2 = await Servicos.Plug4market.migracaoSolicitar(1, '65294214bae0ed00018b96e6', 26);
       const teste3 = await Servicos.Plug4market.migracaoBaixarPlanilha(1, '65294214bae0ed00018b96e6', 26);

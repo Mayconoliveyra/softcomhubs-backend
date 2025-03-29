@@ -511,9 +511,9 @@ const migracaoConsultarStatus = async (empresaId: number, storeId: string, canal
 
     if (!response?.data?.syncs?.[0]._id) {
       return {
-        sucesso: true,
+        sucesso: false,
         dados: null,
-        erro: null,
+        erro: { mensagem: 'Não foi encontrado nenhum registro na fila de migração' },
       };
     } else {
       return {

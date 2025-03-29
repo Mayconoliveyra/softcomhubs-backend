@@ -31,6 +31,17 @@ const solicitarMigracaoValidacao = Middlewares.validacao((getSchema) => ({
 const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response) => {
   const { empresaId, canalId, p4mEmpresaId } = req.body;
 
+  // Verificar se já existe solicitação pendente
+  const pendente = await Repositorios.Plug4Market.verificarSolicitacaoPendente(empresaId, canalId);
+
+  if (pendente) {
+    return res.status(StatusCodes.CONFLICT).json({
+      errors: {
+        default: 'Já existe um registro integração pendente de finalização. Para continuar, cancele ou finalize o registro anterior.',
+      },
+    });
+  }
+
   const resultado = await Servicos.Plug4market.migracaoSolicitar(empresaId, p4mEmpresaId, canalId);
 
   if (!resultado.sucesso) {
@@ -47,7 +58,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
   }
 
   const novoRegistro: Omit<IP4mMigracaoSolicitacao, 'id' | 'created_at'> = {
-    empresa_id: empresaId.toString(),
+    empresa_id: empresaId,
     canal_codigo: canalId,
     solicitado_em: Util.DataHora.obterDataAtual(),
     finalizado_em: null,
@@ -57,16 +68,8 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     prod_migrados: 0,
     erros: null,
     prox_sinc: 0,
-    status: 'CONSULTADO_PLANILHA',
+    status: 'PROCESSANDO',
   };
-
-  const cancelou = await Repositorios.Plug4Market.cancelarSolicitacoesAtivas(empresaId, canalId);
-
-  if (!cancelou) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      errors: { default: 'Erro ao cancelar solicitações anteriores' },
-    });
-  }
 
   const idRegistro = await Repositorios.Plug4Market.criarSolicitacao(novoRegistro);
 
@@ -79,7 +82,54 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
   return res.status(StatusCodes.ACCEPTED).json(resultado.dados);
 };
 
+const consultarStatusMigracaoValidacao = Middlewares.validacao((getSchema) => ({
+  params: getSchema<{ id: number }>(
+    yup.object().shape({
+      id: yup.number().required(),
+    }),
+  ),
+}));
+
+const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Response) => {
+  const id = req.params.id as unknown as number;
+
+  const registro = await Repositorios.Plug4Market.obterSolicitacaoPorId(id);
+
+  if (!registro || registro.status !== 'PROCESSANDO') {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      errors: {
+        default: 'Não existe nenhum registro pendente de consulta, atualize a página e tente novamente.',
+      },
+    });
+  }
+
+  const resultado = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, '661d5e877510d9e548438f00', registro.canal_codigo);
+
+  if (!resultado.sucesso) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      errors: { default: resultado.erro },
+    });
+  }
+
+  // Atualiza prod_encontrados com o valor retornado
+  const totalProdutos = resultado.dados?.quantity || 0;
+
+  const atualizado = await Repositorios.Plug4Market.atualizarPorId(id, {
+    prod_encontrados: totalProdutos,
+  });
+
+  if (!atualizado) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      errors: { default: 'Erro ao atualizar dados da solicitação.' },
+    });
+  }
+
+  return res.status(StatusCodes.OK).json(resultado.dados);
+};
+
 export const Plug4Market = {
   solicitarMigracaoValidacao,
   solicitarMigracao,
+  consultarStatusMigracaoValidacao,
+  consultarStatusMigracao,
 };
