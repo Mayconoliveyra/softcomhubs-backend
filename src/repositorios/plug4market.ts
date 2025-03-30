@@ -65,4 +65,22 @@ const inserirProdutosMigracao = async (dados: IValidacaoProdutoP4M[]) => {
   }
 };
 
-export const Plug4Market = { criarSolicitacao, verificarSolicitacaoProcessamento, obterSolicitacaoPorId, atualizarPorId, inserirProdutosMigracao };
+/* const buscarSkusExistentes = async (empresaId: number, skus: number[]): Promise<string[]> => {
+  try {
+    const resultados = await Knex(ETableNames.produtos).select('p4m_sku').whereIn('p4m_sku', skus).andWhere('empresa_id', '=', empresaId);
+
+    return resultados.map((r) => r.p4m_sku);
+  } catch (error) {
+    Util.Log.error('[P4M] | Erro ao buscar SKUs existentes', error);
+    return [];
+  }
+};
+ */
+
+export const Plug4Market = {
+  criarSolicitacao,
+  verificarSolicitacaoProcessamento,
+  obterSolicitacaoPorId,
+  atualizarPorId,
+  inserirProdutosMigracao,
+};

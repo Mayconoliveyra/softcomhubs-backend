@@ -13,18 +13,18 @@ export async function up(knex: Knex) {
       table.string('sh_nome').notNullable();
       table.decimal('sh_preco', 10, 2).notNullable();
       table.decimal('sh_preco_custo', 10, 2).notNullable();
-      table.string('sh_produto_id').notNullable();
+      table.bigInteger('sh_produto_id').notNullable();
       table.string('sh_nome_formatado').notNullable();
-      table.string('sh_sku').notNullable();
+      table.bigInteger('sh_sku').notNullable();
       table.integer('sh_estoque').notNullable();
       table.string('sh_marca').notNullable().defaultTo('Não informado');
 
       table.string('p4m_nome');
       table.decimal('p4m_preco', 10, 2);
       table.decimal('p4m_preco_custo', 10, 2);
-      table.string('p4m_produto_id');
+      table.bigInteger('p4m_produto_id');
       table.string('p4m_nome_formatado');
-      table.string('p4m_sku');
+      table.bigInteger('p4m_sku');
       table.integer('p4m_estoque');
       table.string('p4m_marca');
 

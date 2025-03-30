@@ -28,7 +28,7 @@ interface ISelfHostProduto {
   produto_id: number;
   nome: string;
   id: number;
-  estoque: string;
+  estoque: number;
   preco_venda: string;
   PrecoA: string;
   PrecoB: string;
@@ -41,9 +41,9 @@ interface IProdutoFormatado {
   sh_nome: string;
   sh_preco: number;
   sh_preco_custo: number;
-  sh_produto_id: string;
+  sh_produto_id: number;
   sh_nome_formatado: string;
-  sh_sku: string;
+  sh_sku: number;
   sh_estoque: number;
   sh_marca: string;
 }
@@ -63,8 +63,8 @@ export interface IPedidoRequest {
   usuario_id: number;
   vfrete: number;
   item: {
-    produto_empresa_grade_id: string;
-    produto_id: string;
+    produto_empresa_grade_id: number;
+    produto_id: number;
     preco: number;
     quantidade: number;
     desconto_valor_item: number;
@@ -100,8 +100,8 @@ interface IPedidoResponse {
 }
 
 interface IItemPedido {
-  produto_empresa_grade_id: string;
-  produto_id: string;
+  produto_empresa_grade_id: number;
+  produto_id: number;
   preco: number;
   quantidade: number;
   desconto_valor_item: number;
@@ -271,15 +271,19 @@ const buscarProdutos = async (
             preco = produto.preco_venda ? parseFloat(parseFloat(produto.preco_venda).toFixed(2)) : 0;
         }
 
+        if (!Util.Texto.tratarComoNumero(produto.produto_id) || !Util.Texto.tratarComoNumero(produto.id)) {
+          throw `[SH] | Produtos | produto.produto_id e produto.id não pode ser nulo | Empresa ${empresa_id}`;
+        }
+
         return {
           empresa_id,
-          sh_nome: Util.Texto.truncarTexto(produto.nome || '', 250) || '',
-          sh_preco: Util.Texto.paraNumero(preco) || 12345.67,
-          sh_preco_custo: Util.Texto.paraNumero(0) || 0, // SELFHOST NÃO RETORNA PRECO DE COMPRA
-          sh_produto_id: produto.produto_id ? produto.produto_id.toString() : '',
+          sh_nome: Util.Texto.truncarTexto(produto.nome, 250) || '',
+          sh_preco: Util.Texto.tratarComoNumero(preco) || 12345.67,
+          sh_preco_custo: Util.Texto.tratarComoNumero(0) || 0, // SELFHOST NÃO RETORNA PRECO DE COMPRA
+          sh_produto_id: Util.Texto.tratarComoNumero(produto.produto_id) as number,
           sh_nome_formatado: Util.Texto.truncarTexto(removerGradeDoNome(produto.nome || ''), 250) || '',
-          sh_sku: produto.id ? produto.id.toString() : '',
-          sh_estoque: produto.estoque && parseInt(produto.estoque) > 0 ? Math.min(Number.MAX_SAFE_INTEGER, parseInt(produto.estoque)) : 0,
+          sh_sku: Util.Texto.tratarComoNumero(produto.id) as number,
+          sh_estoque: Math.floor(Util.Texto.tratarComoNumero(produto.estoque && produto.estoque > 0 ? produto.estoque : 0) || 0),
           sh_marca: produto.fabricante && produto.fabricante !== 'SELECIONE' ? produto.fabricante.substring(0, 250) : 'Não informado',
         };
       });
@@ -303,6 +307,11 @@ const buscarItensPedido = async (pedidoId: number, empresaId: number): Promise<{
     const errosFormat: { mensagem: string }[] = [];
 
     for (const item of itens) {
+      if (!item.sku) {
+        errosFormat.push({ mensagem: `Produto sem SKU válido. Necessário vincular.` });
+        continue;
+      }
+
       const produtoExiste = await Knex(ETableNames.produtos)
         .select('sh_produto_id', 'sh_sku', 'sh_preco_custo')
         .where('sh_sku', '=', item.sku)
@@ -315,11 +324,11 @@ const buscarItensPedido = async (pedidoId: number, empresaId: number): Promise<{
         itensFormat.push({
           produto_empresa_grade_id: produtoExiste.sh_produto_id,
           produto_id: produtoExiste.sh_sku,
-          preco: Util.Texto.paraNumero(item.preco_original) || 0, // Preço pode ser 0
-          quantidade: Util.Texto.paraNumero(item.quantidade) || 1, // Quantidade não pode ser 0
-          desconto_valor_item: Util.Texto.paraNumero(item.desconto) || 0,
+          preco: Util.Texto.tratarComoNumero(item.preco_original) || 0, // Preço pode ser 0
+          quantidade: Util.Texto.tratarComoNumero(item.quantidade) || 1, // Quantidade não pode ser 0
+          desconto_valor_item: Util.Texto.tratarComoNumero(item.desconto) || 0,
           acrescimo_valor_item: 0,
-          preco_compra: Util.Texto.paraNumero(produtoExiste.sh_preco_custo) || 0,
+          preco_compra: Util.Texto.tratarComoNumero(produtoExiste.sh_preco_custo) || 0,
         });
       }
     }

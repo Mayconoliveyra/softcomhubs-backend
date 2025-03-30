@@ -2,9 +2,9 @@ export interface IItemPedido {
   id: number;
   pedido_id: number;
 
-  id_produto: string; // productId - Id do produto dado pelo comerciante
+  id_produto: number | null; // productId - Id do produto dado pelo comerciante
   nome: string | null; // name - Nome do produto pedido
-  sku: string; // sku - Sku do produto
+  sku: number | null; // sku - Sku do produto
   preco: number; // price - Valor do pedido
   preco_original: number; // originalPrice - Preço sem desconto
   preco_venda: number; // salePrice - Deprecated - Valor que foi vendido

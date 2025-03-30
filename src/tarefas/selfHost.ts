@@ -396,12 +396,12 @@ const sincronizarPedidos = () => {
                 250,
               ) || '',
             usuario_id: pedido.sh_usuario_id,
-            vfrete: Util.Texto.paraNumero(pedido.custo_envio) || 0,
+            vfrete: Util.Texto.tratarComoNumero(pedido.custo_envio) || 0,
             item: resultadoItens.itens,
             pagamento: [
               {
                 api_nome_pagamento: pedido.sh_forma_pagamento,
-                valor_parcela: (Util.Texto.paraNumero(pedido.valor_total || 0) || 0) - (Util.Texto.paraNumero(pedido.juros || 0) || 0),
+                valor_parcela: (Util.Texto.tratarComoNumero(pedido.valor_total) || 0) - (Util.Texto.tratarComoNumero(pedido.juros) || 0),
               },
             ],
           };
