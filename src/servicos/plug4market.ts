@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import FormData from 'form-data';
 import * as XLSX from 'xlsx';
 
 import { IItemPedido } from '../banco/models/ItemPedido';
@@ -219,6 +220,34 @@ interface IP4mConsultarStatusMigracao {
 
 export type IValidacaoProdutoP4M = Omit<IP4mMigracaoProduto, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
 
+export interface ILinhaMigracao {
+  SKU: string;
+  'ID PRODUTO PAI (CANAL)': string;
+  'ID VARIAÇÃO (CANAL)': string;
+  PROCESSAR: string;
+}
+
+const gerarPlanilhaMigracaoBuffer = (dados: ILinhaMigracao[]) => {
+  try {
+    const worksheet = XLSX.utils.json_to_sheet(dados);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Migracao');
+
+    const buffer = XLSX.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx',
+    });
+
+    return {
+      buffer,
+      filename: `migracao_${Util.DataHora.obterTimestampAtual()}.xlsx`,
+    };
+  } catch (error) {
+    Util.Log.error('[P4M] | Erro ao gerar planilha de migração', error);
+    throw new Error('Erro ao gerar a planilha de migração');
+  }
+};
+
 const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M => ({
   solicitacao_id: linha.solicitacao_id,
   feedback: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['FEEDBACK']), 255) || null,
@@ -234,6 +263,70 @@ const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M =>
   cor_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['COR']), 255) || null,
   tamanho_canal: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['TAMANHO']), 255) || null,
 });
+
+const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>; itens: Partial<IItemPedido>[] } => {
+  return {
+    cabecalho: {
+      id_p4m: pedido.id,
+
+      id_pedido_canal_venda: Util.Texto.truncarTexto(pedido.saleChannelOrderId, 255),
+      canal_venda_nome: Util.Texto.truncarTexto(pedido.saleChannelName, 255),
+
+      cobranca_cidade: Util.Texto.truncarTexto(pedido.billing.city, 255),
+      cobranca_pais: Util.Texto.truncarTexto(pedido.billing.country, 255),
+      cobranca_bairro: Util.Texto.truncarTexto(pedido.billing.district, 255),
+      cobranca_documento: Util.Texto.truncarTexto(pedido.billing.documentId, 255),
+      cobranca_email: Util.Texto.truncarTexto(pedido.billing.email, 255),
+      cobranca_nome: Util.Texto.truncarTexto(pedido.billing.name, 255),
+      cobranca_telefone: Util.Texto.truncarTexto(pedido.billing.phone, 255),
+      cobranca_estado: Util.Texto.truncarTexto(pedido.billing.state, 255),
+      cobranca_rua: Util.Texto.truncarTexto(pedido.billing.street, 255),
+      cobranca_complemento: Util.Texto.truncarTexto(pedido.billing.streetComplement, 255),
+      cobranca_numero: Util.Texto.truncarTexto(pedido.billing.streetNumber, 255),
+      cobranca_pagador_imposto: pedido.billing.taxPayer || false,
+      cobranca_cep: Util.Texto.truncarTexto(pedido.billing.zipCode, 255),
+      cobranca_ibge: Util.Texto.truncarTexto(pedido.billing.ibge, 255),
+
+      entrega_cidade: Util.Texto.truncarTexto(pedido.shipping.city, 255),
+      entrega_pais: Util.Texto.truncarTexto(pedido.shipping.country, 255),
+      entrega_bairro: Util.Texto.truncarTexto(pedido.shipping.district, 255),
+      entrega_telefone: Util.Texto.truncarTexto(pedido.shipping.phone, 255),
+      entrega_nome_destinatario: Util.Texto.truncarTexto(pedido.shipping.recipientName, 255),
+      entrega_estado: Util.Texto.truncarTexto(pedido.shipping.state, 255),
+      entrega_rua: Util.Texto.truncarTexto(pedido.shipping.street, 255),
+      entrega_complemento: Util.Texto.truncarTexto(pedido.shipping.streetComplement, 255),
+      entrega_numero: Util.Texto.truncarTexto(pedido.shipping.streetNumber, 255),
+      entrega_cep: Util.Texto.truncarTexto(pedido.shipping.zipCode, 255),
+      entrega_ibge: Util.Texto.truncarTexto(pedido.shipping.ibge, 255),
+
+      estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt || '') : null,
+      prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit || '') : null,
+
+      criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated || '') : null,
+      observacao: Util.Texto.truncarTexto(pedido.note, 255),
+
+      custo_envio: Util.Texto.tratarComoNumero(pedido.shippingCost?.toFixed(4)) || 0,
+      juros: Util.Texto.tratarComoNumero(pedido.interest?.toFixed(4)) || 0,
+      comissao_total: Util.Texto.tratarComoNumero(pedido.totalCommission?.toFixed(4)) || 0,
+      valor_total: Util.Texto.tratarComoNumero(pedido.totalAmount?.toFixed(4)) || 0,
+    },
+    itens:
+      pedido.orderItems?.map((item) => ({
+        id_produto: Util.Texto.tratarComoNumero(item.productId) || null,
+        nome: Util.Texto.truncarTexto(Util.Texto.tratarComoString(item.name), 255) || '',
+        sku: Util.Texto.tratarComoNumero(item.sku) || null,
+        preco: Util.Texto.tratarComoNumero(item.price?.toFixed(4)) || 0,
+        preco_original: Util.Texto.tratarComoNumero(item.originalPrice?.toFixed(4)) || 0,
+        preco_venda: Util.Texto.tratarComoNumero(item.salePrice?.toFixed(4)) || 0,
+        desconto: Util.Texto.tratarComoNumero(item.discount?.toFixed(4)) || 0,
+        frete: Util.Texto.tratarComoNumero(item.freight?.toFixed(4)) || 0,
+        quantidade: Util.Texto.tratarComoNumero(item.quantity) || 0,
+        desconto_unidade: Util.Texto.tratarComoNumero(item.unitDiscount?.toFixed(4)) || 0,
+        total: Util.Texto.tratarComoNumero(item.total?.toFixed(4)) || 0,
+        total_original: Util.Texto.tratarComoNumero(item.originalTotal?.toFixed(4)) || 0,
+      })) || [],
+  };
+};
 
 const renovarToken = async (refreshToken: string) => {
   try {
@@ -401,70 +494,6 @@ const obterDetalhesPedido = async (token: string, pedidoId: string) => {
   }
 };
 
-const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>; itens: Partial<IItemPedido>[] } => {
-  return {
-    cabecalho: {
-      id_p4m: pedido.id,
-
-      id_pedido_canal_venda: Util.Texto.truncarTexto(pedido.saleChannelOrderId, 255),
-      canal_venda_nome: Util.Texto.truncarTexto(pedido.saleChannelName, 255),
-
-      cobranca_cidade: Util.Texto.truncarTexto(pedido.billing.city, 255),
-      cobranca_pais: Util.Texto.truncarTexto(pedido.billing.country, 255),
-      cobranca_bairro: Util.Texto.truncarTexto(pedido.billing.district, 255),
-      cobranca_documento: Util.Texto.truncarTexto(pedido.billing.documentId, 255),
-      cobranca_email: Util.Texto.truncarTexto(pedido.billing.email, 255),
-      cobranca_nome: Util.Texto.truncarTexto(pedido.billing.name, 255),
-      cobranca_telefone: Util.Texto.truncarTexto(pedido.billing.phone, 255),
-      cobranca_estado: Util.Texto.truncarTexto(pedido.billing.state, 255),
-      cobranca_rua: Util.Texto.truncarTexto(pedido.billing.street, 255),
-      cobranca_complemento: Util.Texto.truncarTexto(pedido.billing.streetComplement, 255),
-      cobranca_numero: Util.Texto.truncarTexto(pedido.billing.streetNumber, 255),
-      cobranca_pagador_imposto: pedido.billing.taxPayer || false,
-      cobranca_cep: Util.Texto.truncarTexto(pedido.billing.zipCode, 255),
-      cobranca_ibge: Util.Texto.truncarTexto(pedido.billing.ibge, 255),
-
-      entrega_cidade: Util.Texto.truncarTexto(pedido.shipping.city, 255),
-      entrega_pais: Util.Texto.truncarTexto(pedido.shipping.country, 255),
-      entrega_bairro: Util.Texto.truncarTexto(pedido.shipping.district, 255),
-      entrega_telefone: Util.Texto.truncarTexto(pedido.shipping.phone, 255),
-      entrega_nome_destinatario: Util.Texto.truncarTexto(pedido.shipping.recipientName, 255),
-      entrega_estado: Util.Texto.truncarTexto(pedido.shipping.state, 255),
-      entrega_rua: Util.Texto.truncarTexto(pedido.shipping.street, 255),
-      entrega_complemento: Util.Texto.truncarTexto(pedido.shipping.streetComplement, 255),
-      entrega_numero: Util.Texto.truncarTexto(pedido.shipping.streetNumber, 255),
-      entrega_cep: Util.Texto.truncarTexto(pedido.shipping.zipCode, 255),
-      entrega_ibge: Util.Texto.truncarTexto(pedido.shipping.ibge, 255),
-
-      estimativa_entrega: pedido.estimatedDeliveredAt ? Util.DataHora.formatarDataHora(pedido.estimatedDeliveredAt || '') : null,
-      prazo_maximo_envio: pedido.estimatedHandlingLimit ? Util.DataHora.formatarDataHora(pedido.estimatedHandlingLimit || '') : null,
-
-      criado_canal_venda: pedido.saleChannelCreated ? Util.DataHora.formatarDataHora(pedido.saleChannelCreated || '') : null,
-      observacao: Util.Texto.truncarTexto(pedido.note, 255),
-
-      custo_envio: Util.Texto.tratarComoNumero(pedido.shippingCost?.toFixed(4)) || 0,
-      juros: Util.Texto.tratarComoNumero(pedido.interest?.toFixed(4)) || 0,
-      comissao_total: Util.Texto.tratarComoNumero(pedido.totalCommission?.toFixed(4)) || 0,
-      valor_total: Util.Texto.tratarComoNumero(pedido.totalAmount?.toFixed(4)) || 0,
-    },
-    itens:
-      pedido.orderItems?.map((item) => ({
-        id_produto: Util.Texto.tratarComoNumero(item.productId) || null,
-        nome: Util.Texto.truncarTexto(Util.Texto.tratarComoString(item.name), 255) || '',
-        sku: Util.Texto.tratarComoNumero(item.sku) || null,
-        preco: Util.Texto.tratarComoNumero(item.price?.toFixed(4)) || 0,
-        preco_original: Util.Texto.tratarComoNumero(item.originalPrice?.toFixed(4)) || 0,
-        preco_venda: Util.Texto.tratarComoNumero(item.salePrice?.toFixed(4)) || 0,
-        desconto: Util.Texto.tratarComoNumero(item.discount?.toFixed(4)) || 0,
-        frete: Util.Texto.tratarComoNumero(item.freight?.toFixed(4)) || 0,
-        quantidade: Util.Texto.tratarComoNumero(item.quantity) || 0,
-        desconto_unidade: Util.Texto.tratarComoNumero(item.unitDiscount?.toFixed(4)) || 0,
-        total: Util.Texto.tratarComoNumero(item.total?.toFixed(4)) || 0,
-        total_original: Util.Texto.tratarComoNumero(item.originalTotal?.toFixed(4)) || 0,
-      })) || [],
-  };
-};
-
 const confirmarPedido = async (token: string, id_p4m: string, idPedidoLocal: number) => {
   try {
     const headers = {
@@ -611,6 +640,120 @@ const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, 
   }
 };
 
+const migracaoValidar = async (empresaId: number, storeId: string, canalId: number, dados: ILinhaMigracao[]) => {
+  try {
+    const url = `${URL_BASE_VTRINA}/migration/validation/updated?storeId=${storeId}`;
+
+    const { buffer, filename } = gerarPlanilhaMigracaoBuffer(dados);
+
+    const formData = new FormData();
+    formData.append('userEmail', P4M_USER_EMAIL);
+    formData.append('userName', P4M_USER_NOME);
+    formData.append('userId', P4M_USER_ID);
+    formData.append('userToken', P4M_USER_TOKEN);
+    formData.append('marketplace', canalId.toString());
+    formData.append('storeId', storeId);
+    formData.append('file', buffer, {
+      filename,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const response = await axios.post(url, formData, {
+      headers: {
+        ...formData.getHeaders(),
+        accept: '*/*',
+        'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        Referer: 'https://hub.plug4market.com.br/',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+      },
+      timeout: TIMEOUT_VTRINA,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+
+    if (response.status === 200 || response.status === 202) {
+      return {
+        sucesso: true,
+        dados: 'Validação de migração enviada com sucesso!',
+        erro: null,
+      };
+    } else {
+      Util.Log.error(`[P4M] | Migração | Validação | Status inválido | Status: ${response.status} | Empresa: ${empresaId}`, response.data);
+      return {
+        sucesso: false,
+        dados: null,
+        erro: `Status inesperado: ${response.status}`,
+      };
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    Util.Log.error(`[P4M] | Migração | Validação | Erro ao enviar | Empresa: ${empresaId}`, axiosError);
+
+    return {
+      sucesso: false,
+      dados: null,
+      erro: JSON.stringify(axiosError.response?.data || 'Erro desconhecido'),
+    };
+  }
+};
+
+const migracaoMigrar = async (empresaId: number, storeId: string, canalId: number, dados: ILinhaMigracao[]) => {
+  try {
+    const url = `${URL_BASE_VTRINA}/migration/migration`;
+
+    const { buffer, filename } = gerarPlanilhaMigracaoBuffer(dados);
+
+    const formData = new FormData();
+    formData.append('userEmail', P4M_USER_EMAIL);
+    formData.append('userName', P4M_USER_NOME);
+    formData.append('userId', P4M_USER_ID);
+    formData.append('userToken', P4M_USER_TOKEN);
+    formData.append('marketplace', canalId.toString());
+    formData.append('storeId', storeId);
+    formData.append('file', buffer, {
+      filename,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const response = await axios.post(url, formData, {
+      headers: {
+        ...formData.getHeaders(),
+        accept: '*/*',
+        'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        Referer: 'https://hub.plug4market.com.br/',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+      },
+      timeout: TIMEOUT_VTRINA,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+
+    if (response.status === 200 || response.status === 202) {
+      return {
+        sucesso: true,
+        dados: 'Migração enviada com sucesso!',
+        erro: null,
+      };
+    } else {
+      Util.Log.error(`[P4M] | Migração | Migração | Status inválido | Status: ${response.status} | Empresa: ${empresaId}`, response.data);
+      return {
+        sucesso: false,
+        dados: null,
+        erro: `Status inesperado: ${response.status}`,
+      };
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    Util.Log.error(`[P4M] | Migração | Migração | Erro ao enviar | Empresa: ${empresaId}`, axiosError);
+
+    return {
+      sucesso: false,
+      dados: null,
+      erro: JSON.stringify(axiosError.response?.data || 'Erro desconhecido'),
+    };
+  }
+};
+
 export const Plug4market = {
   renovarToken,
   cadastrarOuAtualizarProduto,
@@ -619,4 +762,6 @@ export const Plug4market = {
   migracaoConsultarStatus,
   migracaoSolicitar,
   migracaoBaixarPlanilha,
+  migracaoValidar,
+  migracaoMigrar,
 };

@@ -25,6 +25,22 @@ const solicitarMigracaoValidacao = Middlewares.validacao((getSchema) => ({
     }),
   ),
 }));
+const migracaoValidarValidacao = Middlewares.validacao((getSchema) => ({
+  body: getSchema<IBodyProps>(
+    yup.object().shape({
+      empresaId: yup.number().required(),
+      canalId: yup.number().required(),
+    }),
+  ),
+}));
+const migracaoMigrarValidacao = Middlewares.validacao((getSchema) => ({
+  body: getSchema<IBodyProps>(
+    yup.object().shape({
+      empresaId: yup.number().required(),
+      canalId: yup.number().required(),
+    }),
+  ),
+}));
 
 const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response) => {
   const { empresaId, canalId } = req.body;
@@ -166,9 +182,139 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
   return res.status(StatusCodes.NO_CONTENT).send();
 };
 
+const migracaoValidar = async (req: Request<{ id: string }>, res: Response) => {
+  const id = req.params.id as unknown as number;
+
+  const registro = await Repositorios.Plug4Market.obterSolicitacaoPorId(id);
+
+  if (!registro || registro.status !== 'EDITANDO') {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      errors: {
+        default: 'Registro não está pendente de validação, atualize a página e tente novamente.',
+      },
+    });
+  }
+
+  if (!registro.pm4_loja_id) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'ID da Loja no Marketplace (app.plug4market) não foi informado.' } });
+  }
+  const dadosMigracao = [
+    {
+      SKU: '27',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287902',
+      PROCESSAR: 'VERDADEIRO',
+    },
+    {
+      SKU: '26',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287899',
+      PROCESSAR: 'VERDADEIRO',
+    },
+    {
+      SKU: '28',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287900',
+      PROCESSAR: 'VERDADEIRO',
+    },
+    {
+      SKU: '25',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287901',
+      PROCESSAR: 'VERDADEIRO',
+    },
+  ];
+
+  const resultado = await Servicos.Plug4market.migracaoValidar(registro.empresa_id, registro.pm4_loja_id, registro.canal_codigo, dadosMigracao);
+
+  if (!resultado.sucesso || !resultado.dados) {
+    await Repositorios.Plug4Market.atualizarPorId(id, {
+      status: 'ERRO',
+      erros: resultado.erro,
+    });
+
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      errors: { default: resultado.erro },
+    });
+  }
+
+  const resultadoStatus = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, registro.pm4_loja_id, registro.canal_codigo);
+
+  console.log('resultadoStatus', resultadoStatus);
+
+  return res.status(StatusCodes.NO_CONTENT).send();
+};
+
+const migracaoMigrar = async (req: Request<{ id: string }>, res: Response) => {
+  const id = req.params.id as unknown as number;
+
+  const registro = await Repositorios.Plug4Market.obterSolicitacaoPorId(id);
+
+  if (!registro || registro.status !== 'EDITANDO') {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      errors: {
+        default: 'Registro não está pendente de validação, atualize a página e tente novamente.',
+      },
+    });
+  }
+
+  if (!registro.pm4_loja_id) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'ID da Loja no Marketplace (app.plug4market) não foi informado.' } });
+  }
+  const dadosMigracao = [
+    {
+      SKU: '27',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287902',
+      PROCESSAR: 'VERDADEIRO',
+    },
+    {
+      SKU: '26',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287899',
+      PROCESSAR: 'VERDADEIRO',
+    },
+    {
+      SKU: '28',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287900',
+      PROCESSAR: 'VERDADEIRO',
+    },
+    {
+      SKU: '25',
+      'ID PRODUTO PAI (CANAL)': '22993865539',
+      'ID VARIAÇÃO (CANAL)': '199173287901',
+      PROCESSAR: 'VERDADEIRO',
+    },
+  ];
+
+  const resultado = await Servicos.Plug4market.migracaoMigrar(registro.empresa_id, registro.pm4_loja_id, registro.canal_codigo, dadosMigracao);
+
+  if (!resultado.sucesso || !resultado.dados) {
+    await Repositorios.Plug4Market.atualizarPorId(id, {
+      status: 'ERRO',
+      erros: resultado.erro,
+    });
+
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      errors: { default: resultado.erro },
+    });
+  }
+
+  const resultadoStatus = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, registro.pm4_loja_id, registro.canal_codigo);
+
+  console.log('resultadoStatus', resultadoStatus);
+
+  return res.status(StatusCodes.NO_CONTENT).send();
+};
+
 export const Plug4Market = {
   solicitarMigracaoValidacao,
   solicitarMigracao,
   consultarStatusMigracaoValidacao,
   consultarStatusMigracao,
+  migracaoValidarValidacao,
+  migracaoValidar,
+  migracaoMigrarValidacao,
+  migracaoMigrar,
 };
