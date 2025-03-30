@@ -8,7 +8,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.raw(`
     CREATE VIEW vw_p4m_empresas_sinc_config AS
     SELECT 
-      uuid,
+      id,
       registro,
       pm4_token,
       pm4_token_renovacao,
@@ -25,8 +25,7 @@ export async function up(knex: Knex): Promise<void> {
         AND (UNIX_TIMESTAMP(NOW()) <= (prox_sinc_p4m_token - 6 * 60)) -- 6m antes
       ) AS token_valido
     FROM empresas
-    WHERE deleted_at IS NULL 
-    AND ativo = TRUE
+    WHERE ativo = TRUE
     AND pm4_token IS NOT NULL
     AND pm4_token_renovacao IS NOT NULL;
   `);

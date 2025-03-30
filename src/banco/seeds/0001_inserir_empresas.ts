@@ -12,7 +12,7 @@ export const seed = async (knex: Knex) => {
   await knex(ETableNames.empresas)
     .insert([
       {
-        uuid: '983fbdb3-17a7-43d5-9287-9cd1a019296f',
+        id: 1,
         registro: '1',
         razao: 'EMPRESA TESTE RAZAO',
         fantasia: 'EMPRESA TESTE FANTASIA',
@@ -25,14 +25,14 @@ export const seed = async (knex: Knex) => {
         sinc_fabricante: true,
         ativo: true,
 
-        pm4_id: '65294214bae0ed00018b96e6', //ID da Loja no Marketplace (app.plug4market)
+        pm4_loja_id: '65294214bae0ed00018b96e6', //ID da Loja no Marketplace (app.plug4market)
 
         sh_usuario_id: 1,
         sh_empresa_id: 1,
         sh_forma_pagamento: 'ESPÉCIE',
       },
       {
-        uuid: '02a1d240-287b-4d92-aeb9-606b7ad7c98d',
+        id: 2,
         registro: '2',
         razao: 'CAZIMI',
         fantasia: 'CAZIMI',
@@ -50,7 +50,7 @@ export const seed = async (knex: Knex) => {
         sh_forma_pagamento: 'ESPÉCIE',
       },
       {
-        uuid: '9972d3b0-26ae-4abf-a6f6-3a22c14e30aa',
+        id: 3,
         registro: '3',
         razao: 'NOBRE RAINHA',
         fantasia: 'NOBRE RAINHA',
@@ -68,7 +68,7 @@ export const seed = async (knex: Knex) => {
         sh_forma_pagamento: 'ESPÉCIE',
       },
       {
-        uuid: '573fd949-ec72-4f57-858f-0f448a6f4afd',
+        id: 4,
         registro: '59248',
         razao: 'ELETROSUL',
         fantasia: 'ELETROSUL LTDA ME',

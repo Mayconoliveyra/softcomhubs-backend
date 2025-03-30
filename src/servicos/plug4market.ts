@@ -151,7 +151,7 @@ export interface IPedidoP4MResponse {
   estimatedHandlingLimit: string; // <date-time> - Prazo máximo para o vendedor despachar o item
 
   // Identificadores e status
-  id: string; // uuid do pedido no Plug4Market
+  id: string; // uuuid do pedido no Plug4Market
   integratedSaleChannelStatus: boolean; // Indica se o pedido já foi integrado com o canal de venda
   interest: number; // Valor total dos juros
 
@@ -316,14 +316,14 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
     });
 
     if (response.status === 200 || response.status === 201) {
-      return { sucesso: true, acao: acao, uuid: produto.uuid };
+      return { sucesso: true, acao: acao, id: produto.id };
     } else {
       return {
         sucesso: false,
         acao: acao,
         erro: JSON.stringify({ mensagem: 'response.status diferente de 200 e 201' }),
         status: 500,
-        uuid: produto.uuid,
+        id: produto.id,
       };
     }
   } catch (error) {
@@ -342,10 +342,10 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
         axiosError.response?.data?.error_messages?.[0]?.message?.[0]?.message == produtoRelacionadoOutroProdutoId)
     ) {
       Util.Log.warn(
-        `[P4M] | Produto | Produto já cadastrado, realizado apenas vinculação. | Ação: ${acao} | Produto: ${produto.uuid}`,
+        `[P4M] | Produto | Produto já cadastrado, realizado apenas vinculação. | Ação: ${acao} | Produto: ${produto.id}`,
         JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
       );
-      return { sucesso: true, acao: acao, uuid: produto.uuid };
+      return { sucesso: true, acao: acao, id: produto.id };
     }
 
     // Retorna erro
@@ -354,7 +354,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       acao: acao,
       erro: JSON.stringify(axiosError.response?.data || { mensagem: 'Erro desconhecido' }),
       status: axiosError.response?.status || 500,
-      uuid: produto.uuid,
+      id: produto.id,
     };
   }
 };
@@ -398,11 +398,8 @@ const obterDetalhesPedido = async (token: string, pedidoId: string) => {
 };
 
 const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>; itens: Partial<IItemPedido>[] } => {
-  const uuidCriarPedido = Util.UuidV4.gerar(); // Criar uuid para o pedido
-
   return {
     cabecalho: {
-      uuid: uuidCriarPedido,
       id_p4m: pedido.id,
 
       id_pedido_canal_venda: Util.Texto.truncarTexto(pedido.saleChannelOrderId, 255),
@@ -448,9 +445,6 @@ const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>
     },
     itens:
       pedido.orderItems?.map((item) => ({
-        uuid: Util.UuidV4.gerar(), // Criar um uuid para o item
-        pedido_id: uuidCriarPedido,
-
         id_produto: Util.Texto.truncarTexto(item.productId, 255) || '',
         nome: Util.Texto.truncarTexto(item.name, 255) || '',
         sku: Util.Texto.truncarTexto(item.sku, 255) || '',
@@ -467,14 +461,14 @@ const tratarPedido = (pedido: IPedidoP4MResponse): { cabecalho: Partial<IPedido>
   };
 };
 
-const confirmarPedido = async (token: string, id_p4m: string, uuidPedido: string) => {
+const confirmarPedido = async (token: string, id_p4m: string, idPedidoLocal: number) => {
   try {
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     };
 
-    const data = JSON.stringify({ orderIdStore: uuidPedido });
+    const data = JSON.stringify({ orderIdStore: idPedidoLocal });
 
     const response = await axios.post(`${URL_BASE_P4M}/orders/${id_p4m}/confirm`, data, {
       headers,

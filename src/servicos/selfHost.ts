@@ -37,8 +37,7 @@ interface ISelfHostProduto {
 }
 
 interface IProdutoFormatado {
-  uuid: string;
-  empresa_id: string;
+  empresa_id: number;
   sh_nome: string;
   sh_preco: number;
   sh_preco_custo: number;
@@ -220,7 +219,7 @@ const consultarVendedorMarketplace = async (dominio: string, token: string) => {
 };
 
 const buscarProdutos = async (
-  empresa_id: string,
+  empresa_id: number,
   sh_url: string,
   sh_token: string,
   sh_ultima_sinc: number,
@@ -273,7 +272,6 @@ const buscarProdutos = async (
         }
 
         return {
-          uuid: Util.UuidV4.gerar(),
           empresa_id,
           sh_nome: Util.Texto.truncarTexto(produto.nome || '', 250) || '',
           sh_preco: Util.Texto.paraNumero(preco) || 12345.67,
@@ -298,9 +296,9 @@ const buscarProdutos = async (
   }
 };
 
-const buscarItensPedido = async (pedidoId: string, empresaId: string): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
+const buscarItensPedido = async (pedidoId: number, empresaId: number): Promise<{ sucesso: boolean; itens: IItemPedido[]; erros: { mensagem: string }[] }> => {
   try {
-    const itens = await Knex(ETableNames.pedido_itens).select('sku', 'preco_original', 'quantidade', 'desconto').where('pedido_id', pedidoId);
+    const itens = await Knex(ETableNames.pedido_itens).select('sku', 'preco_original', 'quantidade', 'desconto').where('pedido_id', '=', pedidoId);
     const itensFormat: IItemPedido[] = [];
     const errosFormat: { mensagem: string }[] = [];
 
@@ -338,7 +336,7 @@ const buscarOuCadastrarCliente = async (
   token: string,
   cpfCnpj: string,
   dadosCliente: IClienteCadastrarSH,
-  pedidoId: string,
+  pedidoId: number,
 ): Promise<{ sucesso: boolean; cliente_id: number; erros: { mensagem: string }[] }> => {
   try {
     const urlConsulta = `${dominio}/api/clientes/clientes/cpf_cnpj/${cpfCnpj}`;

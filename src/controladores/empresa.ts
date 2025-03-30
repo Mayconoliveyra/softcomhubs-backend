@@ -11,12 +11,12 @@ import { Servicos } from '../servicos';
 import { Util } from '../util';
 
 interface IAuthRequest {
-  uuid: string;
+  id: number;
   sh_qrcode_url: string;
 }
 
-const limparDadosSelfHost = async (uuid: string) => {
-  await Repositorios.Empresa.atualizarDadosSelfHost(uuid, {
+const limparDadosSelfHost = async (id: number) => {
+  await Repositorios.Empresa.atualizarDadosSelfHost(id, {
     sh_qrcode_url: null,
     sh_url: null,
     sh_client_id: null,
@@ -31,52 +31,52 @@ const limparDadosSelfHost = async (uuid: string) => {
 const autenticacaoSelfHostValidacao = Middlewares.validacao((getSchema) => ({
   body: getSchema<IAuthRequest>(
     yup.object().shape({
-      uuid: yup.string().required().trim().length(36).test('is-uuid-v4', 'uuid inválido', Util.UuidV4.uuidV4Test),
+      id: yup.number().required(),
       sh_qrcode_url: yup.string().url().required().trim(),
     }),
   ),
 }));
 
 const autenticacaoSelfHost = async (req: Request<{}, {}, IAuthRequest>, res: Response) => {
-  const { uuid, sh_qrcode_url } = req.body;
+  const { id, sh_qrcode_url } = req.body;
 
   try {
-    const empresa = await Repositorios.Empresa.buscarPorUuid(uuid);
+    const empresa = await Repositorios.Empresa.buscarPorId(id);
 
     if (!empresa) {
       return res.status(StatusCodes.NOT_FOUND).json({ errors: { default: 'Empresa não encontrada.' } });
     }
 
     if (!empresa.ativo) {
-      await limparDadosSelfHost(uuid);
+      await limparDadosSelfHost(id);
       return res.status(StatusCodes.UNAUTHORIZED).json({ errors: { default: 'Empresa inativa.' } });
     }
 
     const parsedUrl = Servicos.SelfHost.extrairDominioEClientId(sh_qrcode_url);
     if (!parsedUrl.sucesso || !parsedUrl.dominio || !parsedUrl.clientId) {
-      await limparDadosSelfHost(uuid);
+      await limparDadosSelfHost(id);
       return res.status(StatusCodes.BAD_REQUEST).json({ errors: { default: parsedUrl.erro } });
     }
 
     const resultObterClienteSecret = await Servicos.SelfHost.obterClientSecret(parsedUrl.dominio, parsedUrl.clientId);
     if (!resultObterClienteSecret.sucesso || !resultObterClienteSecret.client_secret) {
-      await limparDadosSelfHost(uuid);
+      await limparDadosSelfHost(id);
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: resultObterClienteSecret.erro } });
     }
 
     const resultObterToken = await Servicos.SelfHost.obterToken(parsedUrl.dominio, parsedUrl.clientId, resultObterClienteSecret.client_secret);
     if (!resultObterToken.sucesso) {
-      await limparDadosSelfHost(uuid);
+      await limparDadosSelfHost(id);
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: resultObterToken.erro } });
     }
 
     const resultObterVendedor = await Servicos.SelfHost.consultarVendedorMarketplace(parsedUrl.dominio, resultObterToken.sh_token);
     if (!resultObterVendedor.sucesso) {
-      await limparDadosSelfHost(uuid);
+      await limparDadosSelfHost(id);
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: resultObterVendedor.erro } });
     }
 
-    await Repositorios.Empresa.atualizarDadosSelfHost(uuid, {
+    await Repositorios.Empresa.atualizarDadosSelfHost(id, {
       sh_qrcode_url,
       sh_url: parsedUrl.dominio,
       sh_client_id: parsedUrl.clientId,
@@ -89,7 +89,7 @@ const autenticacaoSelfHost = async (req: Request<{}, {}, IAuthRequest>, res: Res
 
     return res.status(StatusCodes.OK).send();
   } catch (error) {
-    await limparDadosSelfHost(uuid);
+    await limparDadosSelfHost(id);
 
     Util.Log.error('Falha na autenticação da empresa', error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'Erro interno no servidor.' } });

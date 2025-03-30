@@ -13,7 +13,7 @@ let emExecucaoProdutos = false;
 let emExecucaoPedidos = false;
 
 interface IEmpresaSincConfig {
-  uuid: string;
+  id: number;
   registro: string;
   sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
   sh_url: string;
@@ -42,8 +42,8 @@ type IPedidoSinc = {
   sh_forma_pagamento: string;
   sh_token: string;
   token_valido: boolean;
-  uuid: string;
-  empresa_id: string;
+  id: number;
+  empresa_id: number;
   id_p4m: string;
   id_pedido_canal_venda: string;
   canal_venda_nome: string;
@@ -117,7 +117,7 @@ const sincronizarProdutos = () => {
         empresas.map(async (empresa) => {
           try {
             const produtos = await Servicos.SelfHost.buscarProdutos(
-              empresa.uuid,
+              empresa.id,
               empresa.sh_url,
               empresa.sh_token,
               empresa.sh_ultima_sinc_produtos,
@@ -125,7 +125,7 @@ const sincronizarProdutos = () => {
             );
             return { empresa, produtos };
           } catch (error) {
-            Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos | Empresa: ${empresa.uuid}`, error);
+            Util.Log.error(`[SH] | Produtos | Erro ao buscar produtos | Empresa: ${empresa.id}`, error);
             return null; // 🔹 Retorna null para ignorar no próximo passo
           }
         }),
@@ -164,15 +164,15 @@ const sincronizarProdutos = () => {
 
                 // 🔹 Atualiza a sincronização da empresa
                 await trx(ETableNames.empresas)
-                  .where('uuid', empresa.uuid)
+                  .where('id', '=', empresa.id)
                   .update({
                     sh_ultima_sinc_produtos: produtos.ultimaDataSync,
                     prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
                   });
 
-                Util.Log.info(`[SH] | Produtos | Sincronizados com sucesso! | Total: ${produtosInserir.length} | Empresa: ${empresa.uuid}`);
+                Util.Log.info(`[SH] | Produtos | Sincronizados com sucesso! | Total: ${produtosInserir.length} | Empresa: ${empresa.id}`);
               } catch (error) {
-                Util.Log.error(`[SH] | Produtos | Erro ao inserir produtos! | Empresa: ${empresa.uuid}`, error);
+                Util.Log.error(`[SH] | Produtos | Erro ao inserir produtos! | Empresa: ${empresa.id}`, error);
                 throw error; // 🔹 Reverte a transação em caso de erro
               }
             });
@@ -184,35 +184,35 @@ const sincronizarProdutos = () => {
               const novaTentativa = (proxSinc ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0; // Incrementa tentativa
 
               await Knex(ETableNames.empresas)
-                .where('uuid', empresa.uuid)
+                .where('id', '=', empresa.id)
                 .update({
                   sh_ultima_sinc_produtos: produtos.ultimaDataSync,
                   prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(tentativa || 40, tentativa || 40, novaTentativa),
                 });
 
-              Util.Log.error(`[SH] | Produtos | Erro na sincronização! | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`);
+              Util.Log.error(`[SH] | Produtos | Erro na sincronização! | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.id}`);
             } else {
               // 🔹 Se não houve erro, mas também não há produtos novos, só atualiza o timestamp normalmente
               await Knex(ETableNames.empresas)
-                .where('uuid', empresa.uuid)
+                .where('id', '=', empresa.id)
                 .update({
                   sh_ultima_sinc_produtos: produtos.ultimaDataSync,
                   prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(5, 10),
                 });
 
-              Util.Log.info(`[SH] | Produtos | Sincronizados com sucesso! | Total: 0 | Empresa: ${empresa.uuid}`);
+              Util.Log.info(`[SH] | Produtos | Sincronizados com sucesso! | Total: 0 | Empresa: ${empresa.id}`);
             }
           }
         } catch (error) {
           // Se der algum erro, inesperado
           await Knex(ETableNames.empresas)
-            .where('uuid', empresa.uuid)
+            .where('id', '=', empresa.id)
             .update({
               sh_ultima_sinc_produtos: produtos.ultimaDataSync,
               prox_sinc_sh_produtos: Util.DataHora.gerarTimestampMM(50, 60),
             });
 
-          Util.Log.error(`[SH] | Produtos | Erro ao processar sincronização | Empresa: ${empresa.uuid}`, error);
+          Util.Log.error(`[SH] | Produtos | Erro ao processar sincronização | Empresa: ${empresa.id}`, error);
         }
       }
     } catch (error) {
@@ -252,14 +252,14 @@ const sincronizarTokens = () => {
 
           if (tokenData && tokenData.sh_token) {
             await Knex(ETableNames.empresas)
-              .where('uuid', empresa.uuid)
+              .where('id', '=', empresa.id)
               .update({
                 sh_token: tokenData.sh_token,
                 sh_token_exp: tokenData.sh_token_exp,
                 prox_sinc_sh_token: Util.DataHora.gerarTimestampMM(30, 45), // Só retorna para fila nos próximos 30~45 minutos.
               });
 
-            Util.Log.info(`[SH] | Tokens | Token renovado com sucesso! | Empresa: ${empresa.uuid}`);
+            Util.Log.info(`[SH] | Tokens | Token renovado com sucesso! | Empresa: ${empresa.id}`);
           } else {
             // Obtém a tentativa de erro anterior a partir do timestamp armazenado.
             // Se for um erro identificado (01, 02 ou 03), retorna o número da tentativa (1, 2 ou 3).
@@ -275,7 +275,7 @@ const sincronizarTokens = () => {
             const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
 
             await Knex(ETableNames.empresas)
-              .where('uuid', empresa.uuid)
+              .where('id', '=', empresa.id)
               .update({
                 // Define um novo timestamp para a próxima sincronização.
                 // Se houve erro antes, ajusta o tempo de re-tentativa com base na `tentativa`.
@@ -284,7 +284,7 @@ const sincronizarTokens = () => {
                 prox_sinc_sh_token: Util.DataHora.gerarTimestampMM(tentativa || 40, tentativa || 40, novaTentativa),
               });
 
-            Util.Log.error(`[SH] | Tokens | Erro ao renovar token | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`);
+            Util.Log.error(`[SH] | Tokens | Erro ao renovar token | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.id}`);
           }
         }),
       );
@@ -325,7 +325,7 @@ const sincronizarPedidos = () => {
 
       await Promise.all(
         pedidos.map(async (pedido) => {
-          Util.Log.info(`[SH] | Pedidos | Iniciado sincronização... | Pedido: ${pedido.uuid}`);
+          Util.Log.info(`[SH] | Pedidos | Iniciado sincronização... | Pedido: ${pedido.id}`);
 
           const modeloClienteInserir: IClienteCadastrarSH = {
             bairro: Util.Texto.truncarTexto(pedido.entrega_bairro || pedido.cobranca_bairro || '', 50),
@@ -353,34 +353,34 @@ const sincronizarPedidos = () => {
           /* Util.Log.info(`[SH] | TEMP | Pedidos | Cliente modelo`, modeloClienteInserir); */
 
           // Consulta e valida os itens do pedido
-          Util.Log.info(`[SH] | Pedidos | Consultando itens... | Pedido: ${pedido.uuid}`);
-          const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.uuid, pedido.empresa_id);
+          Util.Log.info(`[SH] | Pedidos | Consultando itens... | Pedido: ${pedido.id}`);
+          const resultadoItens = await Servicos.SelfHost.buscarItensPedido(pedido.id, pedido.empresa_id);
 
           // Consulta ou cadastra o cliente
-          Util.Log.info(`[SH] | Pedidos | Consultando cliente... | CPF/CNPJ: ${pedido.cobranca_documento} | Pedido: ${pedido.uuid}`);
+          Util.Log.info(`[SH] | Pedidos | Consultando cliente... | CPF/CNPJ: ${pedido.cobranca_documento} | Pedido: ${pedido.id}`);
           const resultadoCliente = await Servicos.SelfHost.buscarOuCadastrarCliente(
             pedido.sh_url,
             pedido.sh_token,
             pedido.cobranca_documento,
             modeloClienteInserir,
-            pedido.uuid,
+            pedido.id,
           );
 
           if (!resultadoItens.sucesso || !resultadoCliente.sucesso || !resultadoCliente.cliente_id) {
             const errosTodos = [...resultadoItens.erros, ...resultadoCliente.erros];
 
             await Knex(ETableNames.pedidos)
-              .where('uuid', pedido.uuid)
+              .where('id', '=', pedido.id)
               .update({
                 prox_sinc: Util.DataHora.gerarTimestampMM(5, 10), // 5 a 10 minutos
                 ultima_sinc_erros: Knex.raw('?', [JSON.stringify(errosTodos)]),
               });
-            Util.Log.error(`[SH] | Pedidos | Não foi possível processar o pedido | Pedido: ${pedido.uuid}`, errosTodos);
+            Util.Log.error(`[SH] | Pedidos | Não foi possível processar o pedido | Pedido: ${pedido.id}`, errosTodos);
             return;
           }
 
           const modeloPedidoInserir: IPedidoRequest = {
-            api_guid: pedido.uuid,
+            api_guid: pedido.id_p4m,
             api_data_hora_venda: pedido.criado_canal_venda
               ? Util.DataHora.converterDataParaTimestamp(pedido.criado_canal_venda || '')
               : Util.DataHora.obterTimestampAtual(),
@@ -407,12 +407,12 @@ const sincronizarPedidos = () => {
           };
           /* Util.Log.info(`[SH] | TEMP | Pedidos | Peido modelo`, modeloPedidoInserir); */
 
-          Util.Log.info(`[SH] | Pedidos | Enviando pedido... | Pedido: ${pedido.uuid}`);
+          Util.Log.info(`[SH] | Pedidos | Enviando pedido... | Pedido: ${pedido.id}`);
           const resultadoEnviarPedido = await Servicos.SelfHost.enviarPedido(pedido.sh_url, pedido.sh_token, modeloPedidoInserir);
 
           if (resultadoEnviarPedido.sucesso && resultadoEnviarPedido.venda_id) {
             await Knex(ETableNames.pedidos)
-              .where('uuid', pedido.uuid)
+              .where('id', '=', pedido.id)
               .update({
                 sh_id_pedido: resultadoEnviarPedido.venda_id.toString(),
                 sh_data_sinc: Util.DataHora.obterDataAtual(),
@@ -420,15 +420,15 @@ const sincronizarPedidos = () => {
                 prox_sinc: Util.DataHora.gerarTimestampMM(5, 10), // 5 a 10 minutos // Só pra ficar com valor setado mesmo.
               });
 
-            Util.Log.info(`[SH] | Pedidos | Sucesso no envio do pedido | Pedido: ${pedido.uuid}`);
+            Util.Log.info(`[SH] | Pedidos | Sucesso no envio do pedido | Pedido: ${pedido.id}`);
           } else {
             await Knex(ETableNames.pedidos)
-              .where('uuid', pedido.uuid)
+              .where('id', '=', pedido.id)
               .update({
                 prox_sinc: Util.DataHora.gerarTimestampMM(5, 10), // 5 a 10 minutos
                 ultima_sinc_erros: Knex.raw('?', [JSON.stringify(resultadoEnviarPedido.erros)]),
               });
-            Util.Log.error(`[SH] | Pedidos | Falha ao enviar | Pedido: ${pedido.uuid}: ${resultadoEnviarPedido.erros}`);
+            Util.Log.error(`[SH] | Pedidos | Falha ao enviar | Pedido: ${pedido.id}: ${resultadoEnviarPedido.erros}`);
           }
         }),
       );

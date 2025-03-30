@@ -8,7 +8,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.raw(`
     CREATE VIEW vw_p4m_produtos_sinc AS
     SELECT 
-        p.uuid,
+        p.id,
         p.empresa_id,
         e.pm4_token,
         p.sh_nome,
@@ -47,9 +47,8 @@ export async function up(knex: Knex): Promise<void> {
         p.prox_sinc_p4m,
         FROM_UNIXTIME(p.prox_sinc_p4m) AS prox_sinc_p4m_datetime
     FROM produtos p
-    JOIN empresas e ON p.empresa_id = e.uuid
+    JOIN empresas e ON p.empresa_id = e.id
     WHERE e.ativo = 1 
-    AND e.deleted_at IS NULL 
     AND e.pm4_token_exp >= UNIX_TIMESTAMP()
     AND (UNIX_TIMESTAMP(NOW()) <= (e.prox_sinc_p4m_token - 6 * 60)) -- 6m antes
     AND e.pm4_token IS NOT NULL

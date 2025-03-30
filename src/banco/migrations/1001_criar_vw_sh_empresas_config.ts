@@ -8,7 +8,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.raw(`
     CREATE VIEW vw_sh_empresas_sinc_config AS
     SELECT 
-        uuid,
+        id,
         registro,
         sinc_preco_tipo,
         sh_url,
@@ -28,8 +28,7 @@ export async function up(knex: Knex): Promise<void> {
         FROM_UNIXTIME(prox_sinc_sh_produtos) AS prox_sinc_sh_produtos_datetime,
         ((sh_token_exp) > UNIX_TIMESTAMP(NOW())) AS token_valido
       FROM empresas
-      WHERE deleted_at IS NULL 
-      AND ativo = TRUE
+      WHERE ativo = TRUE 
       AND sh_qrcode_url IS NOT NULL
       AND sh_url IS NOT NULL
       AND sh_client_id IS NOT NULL

@@ -4,18 +4,14 @@ import { IEmpresa } from '../banco/models/empresa';
 
 import { Util } from '../util';
 
-const buscarPorId = async (empresa_id: number) => {
-  return await Knex(ETableNames.empresas).where({ id: empresa_id }).whereNull('deleted_at').first();
+const buscarPorId = async (empresaId: number) => {
+  return await Knex(ETableNames.empresas).where('id', '=', empresaId).first();
 };
 
-const buscarPorUuid = async (empresa_id: string) => {
-  return await Knex(ETableNames.empresas).where({ uuid: empresa_id }).whereNull('deleted_at').first();
-};
-
-const atualizarDadosSelfHost = async (uuid: string, data: Partial<IEmpresa>) => {
+const atualizarDadosSelfHost = async (empresaId: number, data: Partial<IEmpresa>) => {
   try {
     return await Knex(ETableNames.empresas)
-      .where('uuid', uuid)
+      .where('id', '=', empresaId)
       .update({ ...data });
   } catch (error) {
     Util.Log.error('Erro ao atualizar dados selfhost da empresa', error);
@@ -23,4 +19,4 @@ const atualizarDadosSelfHost = async (uuid: string, data: Partial<IEmpresa>) => 
   }
 };
 
-export const Empresa = { buscarPorId, buscarPorUuid, atualizarDadosSelfHost };
+export const Empresa = { buscarPorId, atualizarDadosSelfHost };

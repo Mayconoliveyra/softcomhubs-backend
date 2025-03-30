@@ -1,6 +1,6 @@
 export interface IItemPedido {
-  uuid: string;
-  pedido_id: string;
+  id: number;
+  pedido_id: number;
 
   id_produto: string; // productId - Id do produto dado pelo comerciante
   nome: string | null; // name - Nome do produto pedido

@@ -13,11 +13,10 @@ export async function up(knex: Knex) {
       table.string('email', 120).unique().notNullable();
       table.string('senha', 255).notNullable();
       table.boolean('ativo').defaultTo(true);
-      table.uuid('empresa_id').notNullable().references('uuid').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
+      table.bigInteger('empresa_id').unsigned().notNullable().references('id').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
-      table.timestamp('deleted_at').nullable();
     })
     .then(() => {
       Util.Log.info(`# Criado tabela ${ETableNames.usuarios}`);

@@ -15,7 +15,7 @@ export async function up(knex: Knex): Promise<void> {
       v.sh_forma_pagamento,
       v.sh_token,
       v.token_valido,
-      p.uuid,
+      p.id,
       p.empresa_id,
       p.id_p4m,
       p.id_pedido_canal_venda,
@@ -62,7 +62,7 @@ export async function up(knex: Knex): Promise<void> {
       FROM_UNIXTIME(p.prox_sinc) AS prox_sinc_datetime
     FROM pedidos p
     INNER JOIN vw_sh_empresas_sinc_config v 
-        ON p.empresa_id = v.uuid
+        ON p.empresa_id = v.id
     WHERE p.sh_id_pedido IS NULL
     AND p.sh_data_sinc IS NULL;
   `);

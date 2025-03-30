@@ -39,7 +39,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     return res.status(StatusCodes.NOT_FOUND).json({ errors: { default: 'Empresa inativa.' } });
   }
 
-  if (!empresa.pm4_id) {
+  if (!empresa.pm4_loja_id) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'ID da Loja no Marketplace (app.plug4market) não foi informado.' } });
   }
 
@@ -54,7 +54,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     });
   }
 
-  const resultado = await Servicos.Plug4market.migracaoSolicitar(empresaId, empresa.pm4_id, canalId);
+  const resultado = await Servicos.Plug4market.migracaoSolicitar(empresaId, empresa.pm4_loja_id, canalId);
 
   if (!resultado.sucesso) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -62,7 +62,7 @@ const solicitarMigracao = async (req: Request<{}, {}, IBodyProps>, res: Response
     });
   }
 
-  const consultarStatus = await Servicos.Plug4market.migracaoConsultarStatus(empresaId, empresa.pm4_id, canalId);
+  const consultarStatus = await Servicos.Plug4market.migracaoConsultarStatus(empresaId, empresa.pm4_loja_id, canalId);
   if (!consultarStatus.sucesso) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       errors: { default: consultarStatus.erro },

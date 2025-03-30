@@ -10,7 +10,7 @@ import { Servicos } from '../servicos';
 import { Util } from '../util';
 
 interface IEmpresaTokenSinc {
-  uuid: string;
+  id: number;
   registro: string;
   pm4_token: string;
   pm4_token_renovacao: string;
@@ -24,8 +24,8 @@ interface IEmpresaTokenSinc {
 }
 
 export interface IProdutoSinc {
-  uuid: string;
-  empresa_id: string;
+  id: number;
+  empresa_id: number;
   pm4_token: string;
   sh_nome: string;
   sh_preco: number;
@@ -92,16 +92,16 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
     }
 
     if (Object.keys(camposAtualizar).length === 0) {
-      Util.Log.info(`[P4M] | Produto ${produto.uuid} já sincronizado, nenhuma atualização necessária.`);
+      Util.Log.info(`[P4M] | Produto ${produto.id} já sincronizado, nenhuma atualização necessária.`);
       return true;
     }
 
-    await Knex(ETableNames.produtos).where({ uuid: produto.uuid }).update(camposAtualizar);
+    await Knex(ETableNames.produtos).where('id', '=', produto.id).update(camposAtualizar);
 
-    Util.Log.info(`[P4M] | Produto | Sucesso ao ${acao === 'CADASTRAR' ? 'cadastrar' : 'atualizar'} produto | Ação: ${acao} | Produto: ${produto.uuid}`);
+    Util.Log.info(`[P4M] | Produto | Sucesso ao ${acao === 'CADASTRAR' ? 'cadastrar' : 'atualizar'} produto | Ação: ${acao} | Produto: ${produto.id}`);
     return true;
   } catch (error) {
-    Util.Log.error(`[P4M] | Produto | Erro ao atualizar produto | Ação: ${acao} | Produto: ${produto.uuid}`, error);
+    Util.Log.error(`[P4M] | Produto | Erro ao atualizar produto | Ação: ${acao} | Produto: ${produto.id}`, error);
     return false;
   }
 };
@@ -113,20 +113,20 @@ const atualizarProdutosBatch = async (produtos: IProdutoSinc[]) => {
     }
 
     const updates = produtos.map((produto) => ({
-      uuid: produto.uuid,
+      id: produto.id,
       prox_sinc_p4m: Util.DataHora.gerarTimestampMM(3, 5),
     }));
 
-    const caseStatement = updates.map((u) => `WHEN '${u.uuid}' THEN ${u.prox_sinc_p4m}`).join(' ');
+    const caseStatement = updates.map((u) => `WHEN '${u.id}' THEN ${u.prox_sinc_p4m}`).join(' ');
 
-    const uuids = updates.map((u) => `'${u.uuid}'`).join(',');
+    const ids = updates.map((u) => `'${u.id}'`).join(',');
 
     const query = `
     UPDATE ${ETableNames.produtos}
-    SET prox_sinc_p4m = CASE uuid
+    SET prox_sinc_p4m = CASE id
       ${caseStatement}
     END
-    WHERE uuid IN (${uuids});
+    WHERE id IN (${ids});
   `;
 
     await Knex.raw(query);
@@ -136,23 +136,27 @@ const atualizarProdutosBatch = async (produtos: IProdutoSinc[]) => {
   }
 };
 
-const inserirPedidoComTransacao = async (empresaId: string, cabecalho: Partial<IPedido>, itens: Partial<IItemPedido>[]) => {
+const inserirPedidoComTransacao = async (empresaId: number, cabecalho: Partial<IPedido>, itens: Partial<IItemPedido>[]) => {
   const trx = await Knex.transaction();
   try {
     // Inserir cabeçalho do pedido
-    await trx(ETableNames.pedidos).insert({ empresa_id: empresaId, ...cabecalho });
+    const [id] = await trx(ETableNames.pedidos).insert({ empresa_id: empresaId, ...cabecalho });
 
-    // Inserir itens do pedido
-    await trx(ETableNames.pedido_itens).insert(itens);
+    // Inserir os itens do pedido, vinculando com o pedido_id
+    const itensComPedidoId = itens.map((item) => ({
+      ...item,
+      pedido_id: id,
+    }));
 
+    await trx(ETableNames.pedido_itens).insert(itensComPedidoId);
     // Commit da transação
     await trx.commit();
-    return true;
+    return id;
   } catch (error) {
     Util.Log.error('Erro ao inserir pedido', error);
 
     await Knex(ETableNames.empresas)
-      .where('uuid', empresaId)
+      .where('id', '=', empresaId)
       .update({
         prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
       });
@@ -222,11 +226,11 @@ const sincronizarProdutos = () => {
                     const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
 
                     await Knex(ETableNames.produtos)
-                      .where('uuid', produto.uuid)
+                      .where('id', '=', produto.id)
                       .update({ prox_sinc_p4m: Util.DataHora.gerarTimestampMM(tentativa || 40, tentativa || 40, novaTentativa) });
 
                     Util.Log.error(
-                      `[P4M] | Produto | Erro ao sincronizar produto | Tentativa: ${novaTentativa} reagendado | Produto: ${produto.uuid}`,
+                      `[P4M] | Produto | Erro ao sincronizar produto | Tentativa: ${novaTentativa} reagendado | Produto: ${produto.id}`,
                       resultado.erro,
                     );
                   }
@@ -277,7 +281,7 @@ const sincronizarTokens = () => {
 
           if (tokenData && tokenData.novoToken && tokenData.novoRefreshToken) {
             await Knex(ETableNames.empresas)
-              .where('uuid', empresa.uuid)
+              .where('id', '=', empresa.id)
               .update({
                 pm4_token: tokenData.novoToken,
                 pm4_token_renovacao: tokenData.novoRefreshToken,
@@ -285,7 +289,7 @@ const sincronizarTokens = () => {
                 prox_sinc_p4m_token: Util.DataHora.gerarTimestampMM(900, 1380), // Expira entre 15h e 23h depois
               });
 
-            Util.Log.info(`[P4M] | Tokens | Token renovado com sucesso! | Empresa: ${empresa.uuid}`);
+            Util.Log.info(`[P4M] | Tokens | Token renovado com sucesso! | Empresa: ${empresa.id}`);
           } else {
             // Obtém a tentativa de erro anterior a partir do timestamp armazenado.
             // Se for um erro identificado (01, 02 ou 03), retorna o número da tentativa (1, 2 ou 3).
@@ -301,7 +305,7 @@ const sincronizarTokens = () => {
             const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
 
             await Knex(ETableNames.empresas)
-              .where('uuid', empresa.uuid)
+              .where('id', '=', empresa.id)
               .update({
                 // Define um novo timestamp para a próxima sincronização.
                 // Se houve erro antes, ajusta o tempo de re-tentativa com base na `tentativa`.
@@ -310,7 +314,7 @@ const sincronizarTokens = () => {
                 prox_sinc_p4m_token: Util.DataHora.gerarTimestampMM(tentativa || 120, tentativa || 120, novaTentativa),
               });
 
-            Util.Log.error(`[P4M] | Tokens | Erro ao renovar token | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`);
+            Util.Log.error(`[P4M] | Tokens | Erro ao renovar token | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.id}`);
           }
         }),
       );
@@ -350,37 +354,37 @@ const sincronizarPedidos = () => {
           if (resultado.sucesso) {
             // Quando não tem pedido para ser consultado
             if (!resultado.pedido) {
-              Util.Log.info(`[P4M] | Pedidos | Nenhum pedido encontrado | Empresa: ${empresa.uuid}`);
+              Util.Log.info(`[P4M] | Pedidos | Nenhum pedido encontrado | Empresa: ${empresa.id}`);
 
               await Knex(ETableNames.empresas)
-                .where('uuid', empresa.uuid)
+                .where('id', '=', empresa.id)
                 .update({
                   prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
                 });
 
               return;
             }
-            const novoUuidPedido = resultado.pedido.cabecalho.uuid as string;
+
             const idP4m = resultado.pedido.cabecalho.id_p4m;
 
-            const pedidoExiste = await Knex(ETableNames.pedidos).where('id_p4m', idP4m).andWhere('empresa_id', empresa.uuid).first();
+            const pedidoExiste = await Knex(ETableNames.pedidos).where('id_p4m', idP4m).andWhere('empresa_id', empresa.id).first();
             if (!pedidoExiste) {
-              await inserirPedidoComTransacao(empresa.uuid, resultado.pedido.cabecalho, resultado.pedido.itens);
+              const idNovoPedido = await inserirPedidoComTransacao(empresa.id, resultado.pedido.cabecalho, resultado.pedido.itens);
 
-              const resultadoConfirmar = await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, idP4m as string, novoUuidPedido);
+              const resultadoConfirmar = await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, idP4m as string, idNovoPedido);
               if (resultadoConfirmar) {
-                Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
+                Util.Log.info(`[P4M] | Pedidos | Pedido sincronizado com sucesso! | Pedido: ${idP4m} | Empresa: ${empresa.id}`);
               } else {
-                await Knex(ETableNames.pedidos).delete().where(novoUuidPedido);
-                Util.Log.error(`[P4M] | Pedidos | Erro ao confirmar pedido, nada feito... | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
+                await Knex(ETableNames.pedidos).delete().where(idNovoPedido);
+                Util.Log.error(`[P4M] | Pedidos | Erro ao confirmar pedido, nada feito... | Pedido: ${idP4m} | Empresa: ${empresa.id}`);
               }
             } else {
-              await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, idP4m as string, pedidoExiste.uuid);
-              Util.Log.warn(`[P4M] | Pedidos | Pedido já existe, ignorando... | Pedido: ${idP4m} | Empresa: ${empresa.uuid}`);
+              await Servicos.Plug4market.confirmarPedido(empresa.pm4_token, idP4m as string, pedidoExiste.id);
+              Util.Log.warn(`[P4M] | Pedidos | Pedido já existe, ignorando... | Pedido: ${idP4m} | Empresa: ${empresa.id}`);
             }
 
             await Knex(ETableNames.empresas)
-              .where('uuid', empresa.uuid)
+              .where('id', '=', empresa.id)
               .update({
                 prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(2, 5), // entre 2 e 5m
               });
@@ -399,7 +403,7 @@ const sincronizarPedidos = () => {
             const novaTentativa = (tentativa ? proxSinc + 1 : 1) as 1 | 2 | 3 | 0;
 
             await Knex(ETableNames.empresas)
-              .where('uuid', empresa.uuid)
+              .where('id', '=', empresa.id)
               .update({
                 // Define um novo timestamp para a próxima sincronização.
                 // Se houve erro antes, ajusta o tempo de re-tentativa com base na `tentativa`.
@@ -408,7 +412,7 @@ const sincronizarPedidos = () => {
                 prox_sinc_p4m_pedidos: Util.DataHora.gerarTimestampMM(tentativa || 20, tentativa || 20, novaTentativa),
               });
 
-            Util.Log.error(`[P4M] | Pedidos | Erro ao sincronizar pedido | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.uuid}`, resultado.erro);
+            Util.Log.error(`[P4M] | Pedidos | Erro ao sincronizar pedido | Tentativa: ${novaTentativa} reagendado | Empresa: ${empresa.id}`, resultado.erro);
           }
         }),
       );

@@ -5,9 +5,8 @@ export interface IUsuario {
   email: string;
   senha: string;
   ativo: boolean;
-  empresa_id: string;
+  empresa_id: number;
 
   created_at: string;
   updated_at?: string;
-  deleted_at?: string;
 }

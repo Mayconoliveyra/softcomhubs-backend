@@ -8,9 +8,7 @@ export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.produtos, (table) => {
       table.bigIncrements('id');
-
-      table.uuid('uuid').index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
-      table.uuid('empresa_id').notNullable().references('uuid').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
+      table.bigInteger('empresa_id').unsigned().notNullable().references('id').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
 
       table.string('sh_nome').notNullable();
       table.decimal('sh_preco', 10, 2).notNullable();

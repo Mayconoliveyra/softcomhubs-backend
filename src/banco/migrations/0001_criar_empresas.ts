@@ -8,7 +8,6 @@ export async function up(knex: Knex) {
   return knex.schema
     .createTable(ETableNames.empresas, (table) => {
       table.bigIncrements('id');
-      table.uuid('uuid').index().unique().notNullable().checkLength('=', 36).checkRegex(Util.UuidV4.regexUuidV4String);
 
       table.string('fantasia', 255).notNullable();
       table.string('razao', 255).notNullable();
@@ -24,7 +23,7 @@ export async function up(knex: Knex) {
 
       table.enum('sinc_preco_tipo', ['PADRAO', 'A', 'B', 'C']).defaultTo('PADRAO').notNullable();
 
-      table.string('pm4_id', 24); //ID da Loja no Marketplace (app.plug4market)
+      table.string('pm4_loja_id', 24); //ID da Loja no Marketplace (app.plug4market)
       table.text('pm4_token');
       table.text('pm4_token_renovacao');
       table.bigInteger('pm4_token_exp').notNullable().defaultTo(0);
@@ -52,7 +51,6 @@ export async function up(knex: Knex) {
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
-      table.timestamp('deleted_at').nullable();
     })
     .then(() => {
       Util.Log.info(`# Criado tabela ${ETableNames.empresas}`);

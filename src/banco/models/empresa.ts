@@ -1,6 +1,5 @@
 export interface IEmpresa {
   id: number;
-  uuid: string;
 
   fantasia: string;
   razao: string;
@@ -15,7 +14,7 @@ export interface IEmpresa {
 
   sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
 
-  pm4_id?: string | null; //ID da Loja no Marketplace (app.plug4market)
+  pm4_loja_id?: string | null; //ID da Loja no Marketplace (app.plug4market)
   pm4_token?: string | null;
   pm4_token_renovacao?: string | null;
   pm4_token_exp: number;
@@ -43,5 +42,4 @@ export interface IEmpresa {
 
   created_at: string;
   updated_at?: string;
-  deleted_at?: string;
 }

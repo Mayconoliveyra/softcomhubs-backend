@@ -30,21 +30,21 @@ const verificarSolicitacaoProcessamento = async (empresaId: number, canalId: num
     return true;
   }
 };
-const obterSolicitacaoPorId = async (id: number): Promise<(IP4mMigracaoSolicitacao & { pm4_id: string }) | undefined> => {
+const obterSolicitacaoPorId = async (solicitacaoId: number): Promise<(IP4mMigracaoSolicitacao & { pm4_id: string }) | undefined> => {
   try {
     return await Knex(ETableNames.p4m_migracao_solicitacao)
       .select(`${ETableNames.p4m_migracao_solicitacao}.*`, `${ETableNames.empresas}.pm4_id`)
       .innerJoin(ETableNames.empresas, `${ETableNames.empresas}.id`, `${ETableNames.p4m_migracao_solicitacao}.empresa_id`)
-      .where(`${ETableNames.p4m_migracao_solicitacao}.id`, id)
+      .where(`${ETableNames.p4m_migracao_solicitacao}.id`, '=', solicitacaoId)
       .first();
   } catch (error) {
     Util.Log.error('Erro ao buscar solicitação por ID', error);
     return undefined;
   }
 };
-const atualizarPorId = async (id: number, dados: Partial<IP4mMigracaoSolicitacao>): Promise<boolean> => {
+const atualizarPorId = async (solicitacaoId: number, dados: Partial<IP4mMigracaoSolicitacao>): Promise<boolean> => {
   try {
-    const result = await Knex(ETableNames.p4m_migracao_solicitacao).update(dados).where('id', id);
+    const result = await Knex(ETableNames.p4m_migracao_solicitacao).update(dados).where('id', '=', solicitacaoId);
 
     return result > 0;
   } catch (error) {
