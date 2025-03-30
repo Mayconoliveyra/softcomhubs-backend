@@ -270,7 +270,11 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       Authorization: `Bearer ${produto.pm4_token}`,
     };
 
-    const url = ehAtualizar ? `${URL_BASE_P4M}/products/${produto.sh_sku}` : `${URL_BASE_P4M}/products`;
+    // Se produto.p4m_sku tiver vazio é porque a mercadoria é vai ser cadastradas.
+    // Se "p4m_sku" tive preenchido é porque a mercadoria já ta cadastrada com o "p4m_sku" válido.
+    // Então para atualizar o produto vou utilizar "p4m_sku", pois ele vai ser o sku válido e nunca vai ser alterado.
+    // Já "sh_sku" pode alterar o valor, por exemplo, se foi realizado a troca de sistema.
+    const url = ehAtualizar ? `${URL_BASE_P4M}/products/${ehAtualizar ? produto.p4m_sku : produto.sh_sku}` : `${URL_BASE_P4M}/products`;
     const metodo = ehAtualizar ? 'put' : 'post';
 
     const data: Partial<IProdutoP4m> = {};
