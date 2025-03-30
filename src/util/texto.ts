@@ -45,24 +45,6 @@ const ehTamanhoExato = (texto: string | null | undefined, quantidadeEsperada: nu
 };
 
 /**
- * Converte um valor para número, retornando null se não for um número válido.
- *
- * @param valor - O valor a ser verificado.
- * @returns O número convertido ou `null` se não for um número válido.
- *
- * @example
- * paraNumero("123");    // 123
- * paraNumero(456);      // 456
- * paraNumero("abc");    // null
- * paraNumero(null);     // null
- * paraNumero(undefined);// null
- */
-const paraNumero = (valor: unknown): number | null => {
-  const numero = Number(valor);
-  return isNaN(numero) ? null : numero;
-};
-
-/**
  * Trata um valor como string, retornando `undefined` se não for string válida.
  * @param valor Valor a ser tratado
  * @returns string tratada ou undefined
@@ -94,4 +76,4 @@ const tratarComoBoolean = (valor: unknown): boolean | undefined => {
 };
 
 // Exportando as funções dentro de um objeto Texto para facilitar a importação e organização.
-export const Texto = { truncarTexto, ehTamanhoExato, paraNumero, tratarComoString, tratarComoNumero, tratarComoBoolean };
+export const Texto = { truncarTexto, ehTamanhoExato, tratarComoString, tratarComoNumero, tratarComoBoolean };

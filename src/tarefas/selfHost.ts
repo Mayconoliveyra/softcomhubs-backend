@@ -329,7 +329,7 @@ const sincronizarPedidos = () => {
 
           const modeloClienteInserir: IClienteCadastrarSH = {
             bairro: Util.Texto.truncarTexto(pedido.entrega_bairro || pedido.cobranca_bairro || '', 50),
-            codigo_cidade: Util.Texto.paraNumero(pedido.entrega_ibge) || Util.Texto.paraNumero(pedido.cobranca_ibge),
+            codigo_cidade: Util.Texto.tratarComoNumero(pedido.entrega_ibge) || Util.Texto.tratarComoNumero(pedido.cobranca_ibge) || null,
             cep: Util.Texto.truncarTexto(pedido.entrega_cep || pedido.cobranca_cep, 50) || '',
             cpf_cnpj: Util.Texto.truncarTexto(pedido.cobranca_documento, 50) || '',
             complemento: Util.Texto.truncarTexto(pedido.entrega_complemento || pedido.cobranca_complemento, 200) || '',
