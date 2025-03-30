@@ -56,7 +56,6 @@ export interface IProdutoSinc {
 let emExecucaoTokens = false;
 let emExecucaoProdutos = false;
 let emExecucaoPedidos = false;
-let emExecucaoMigracaoProdutosBaixarPlanilha = false;
 
 const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
   try {
@@ -424,41 +423,4 @@ const sincronizarPedidos = () => {
   });
 };
 
-const sincronizarMigracaoBaixarPlanilha = () => {
-  // !! ATENÇÃO, NÃO ALTERAR ESSES 1 MINUTO. !!
-  // Executa a cada 1 minuto
-  schedule.scheduleJob(`*/1 * * * *`, async () => {
-    if (emExecucaoMigracaoProdutosBaixarPlanilha) {
-      Util.Log.warn('[P4M] | Migração | Baixar planilha | Sincronização já em execução.');
-      return;
-    }
-    emExecucaoMigracaoProdutosBaixarPlanilha = true;
-
-    try {
-      const result = await Knex(ETableNames.p4m_migracao_solicitacao)
-        .select(`${ETableNames.p4m_migracao_solicitacao}.*`)
-        .innerJoin(ETableNames.empresas, `${ETableNames.p4m_migracao_solicitacao}.empresa_id`, `${ETableNames.empresas}.id`)
-        .where(`${ETableNames.p4m_migracao_solicitacao}.status`, 'CONSULTAR_PLANILHA')
-        .andWhere(`${ETableNames.empresas}.ativo`, true);
-
-      console.log(result);
-      if (!result.length) return;
-
-      /*  const teste1 = await Servicos.Plug4market.migracaoConsultarStatus(1, '65294214bae0ed00018b96e6', 26);
-      const teste2 = await Servicos.Plug4market.migracaoSolicitar(1, '65294214bae0ed00018b96e6', 26);
-      const teste3 = await Servicos.Plug4market.migracaoBaixarPlanilha(1, '65294214bae0ed00018b96e6', 26);
-      const teste4 = await Servicos.Plug4market.migracaoConsultarStatus(1, '65294214bae0ed00018b96e6', 26);
-
-      console.log(teste1);
-      console.log(teste2);
-      console.log(teste3);
-      console.log(teste4); */
-    } catch (error) {
-      Util.Log.error('[P4M] | Migração | Baixar planilha | Erro ao baixar planilha', error);
-    } finally {
-      emExecucaoMigracaoProdutosBaixarPlanilha = false;
-    }
-  });
-};
-
-export const Plug4market = { sincronizarProdutos, sincronizarTokens, sincronizarPedidos, sincronizarMigracaoBaixarPlanilha };
+export const Plug4market = { sincronizarProdutos, sincronizarTokens, sincronizarPedidos };

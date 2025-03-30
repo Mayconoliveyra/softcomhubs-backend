@@ -25,7 +25,6 @@ const startServer = () => {
   Tarefas.Plug4market.sincronizarTokens();
   Tarefas.Plug4market.sincronizarProdutos();
   Tarefas.Plug4market.sincronizarPedidos();
-  Tarefas.Plug4market.sincronizarMigracaoBaixarPlanilha();
 };
 
 Knex.migrate
