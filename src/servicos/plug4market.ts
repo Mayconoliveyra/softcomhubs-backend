@@ -285,8 +285,8 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.width = 1.234567;
       data.active = true; // Cadastra ativo como padrão
 
-      data.productId = produto.sh_produto_id;
-      data.sku = produto.sh_sku;
+      data.productId = produto.sh_produto_id.toString();
+      data.sku = produto.sh_sku.toString();
       data.name = produto.sh_nome;
       data.price = produto.sh_preco;
       data.costPrice = produto.sh_preco_custo;
@@ -294,7 +294,7 @@ const cadastrarOuAtualizarProduto = async (produto: IProdutoSinc) => {
       data.brand = produto.sh_marca;
       data.productName = produto.sh_nome_formatado;
     } else {
-      data.productId = produto.p4m_produto_id as string;
+      data.productId = produto.p4m_produto_id?.toString();
 
       // Se está sendo atualizado, atualiza apenas os campos necessários
       if (produto.dif_preco) data.price = produto.sh_preco;
