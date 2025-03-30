@@ -112,11 +112,11 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
     });
   }
 
-  if (!registro.pm4_id) {
+  if (!registro.pm4_loja_id) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ errors: { default: 'ID da Loja no Marketplace (app.plug4market) não foi informado.' } });
   }
 
-  const resultado = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, registro.pm4_id, registro.canal_codigo);
+  const resultado = await Servicos.Plug4market.migracaoConsultarStatus(registro.empresa_id, registro.pm4_loja_id, registro.canal_codigo);
 
   if (!resultado.sucesso || !resultado.dados) {
     await Repositorios.Plug4Market.atualizarPorId(id, {
@@ -143,7 +143,7 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
       });
     }
   } else if (statusProcessamentoAtual === 'COMPLETE') {
-    const dadosMigrados = await Servicos.Plug4market.migracaoBaixarPlanilha(registro.empresa_id, id, registro.pm4_id, registro.canal_codigo);
+    const dadosMigrados = await Servicos.Plug4market.migracaoBaixarPlanilha(registro.empresa_id, id, registro.pm4_loja_id, registro.canal_codigo);
 
     const inserido = await Repositorios.Plug4Market.inserirProdutosMigracao(dadosMigrados.dados || []);
     if (!inserido) {
