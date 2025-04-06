@@ -30,17 +30,17 @@ export interface IProdutoSinc {
   sh_nome: string;
   sh_preco: number;
   sh_preco_custo: number;
-  sh_produto_id: string;
+  sh_produto_id: number;
   sh_nome_formatado: string;
-  sh_sku: string;
+  sh_sku: number;
   sh_estoque: number;
   sh_marca: string;
   p4m_nome: string | null;
   p4m_preco: number | null;
   p4m_preco_custo: number | null;
-  p4m_produto_id: string | null;
+  p4m_produto_id: number | null;
   p4m_nome_formatado: string | null;
-  p4m_sku: string | null;
+  p4m_sku: number | null;
   p4m_estoque: number | null;
   p4m_marca: string | null;
   status_envio: 'TOKEN_EXPIRADO' | 'CADASTRAR' | 'ATUALIZAR' | 'SINCRONIZADA';
@@ -61,7 +61,7 @@ const atualizarProdutoP4M = async (produto: IProdutoSinc, acao: string) => {
   try {
     const camposAtualizar: Partial<IProdutoSinc> = {};
 
-    if (!produto.p4m_produto_id && !produto.p4m_sku) {
+    if (!produto.p4m_sku) {
       camposAtualizar.p4m_produto_id = produto.sh_produto_id;
       camposAtualizar.p4m_sku = produto.sh_sku;
 
