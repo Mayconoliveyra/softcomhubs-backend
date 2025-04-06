@@ -30,10 +30,12 @@ const verificarSolicitacaoProcessamento = async (empresaId: number, canalId: num
     return true;
   }
 };
-const obterSolicitacaoPorId = async (solicitacaoId: number): Promise<(IP4mMigracaoSolicitacao & { pm4_loja_id: string }) | undefined> => {
+const obterSolicitacaoPorId = async (
+  solicitacaoId: number,
+): Promise<(IP4mMigracaoSolicitacao & { pm4_loja_id: string; pm4_seller_id?: string | null }) | undefined> => {
   try {
     return await Knex(ETableNames.p4m_migracao_solicitacao)
-      .select(`${ETableNames.p4m_migracao_solicitacao}.*`, `${ETableNames.empresas}.pm4_loja_id`)
+      .select(`${ETableNames.p4m_migracao_solicitacao}.*`, `${ETableNames.empresas}.pm4_loja_id`, `${ETableNames.empresas}.pm4_seller_id`)
       .innerJoin(ETableNames.empresas, `${ETableNames.empresas}.id`, `${ETableNames.p4m_migracao_solicitacao}.empresa_id`)
       .where(`${ETableNames.p4m_migracao_solicitacao}.id`, '=', solicitacaoId)
       .first();

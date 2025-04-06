@@ -16,6 +16,7 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(ETableNames.p4m_migracao_solicitacao)
         .onUpdate('RESTRICT')
         .onDelete('RESTRICT');
+      table.bigInteger('empresa_id').nullable().unsigned();
 
       table.text('feedback').nullable();
       table.bigInteger('sku').nullable();
@@ -33,6 +34,8 @@ export async function up(knex: Knex): Promise<void> {
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
+
+      table.foreign(['sku', 'empresa_id']).references(['p4m_sku', 'empresa_id']).inTable(ETableNames.produtos).onUpdate('RESTRICT').onDelete('RESTRICT');
     })
     .then(() => {
       Util.Log.info(`# Criado tabela ${ETableNames.p4m_migracao_produtos}`);

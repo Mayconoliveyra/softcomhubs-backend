@@ -159,7 +159,13 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
       });
     }
   } else if (statusProcessamentoAtual === 'COMPLETE') {
-    const dadosMigrados = await Servicos.Plug4market.migracaoBaixarPlanilha(registro.empresa_id, id, registro.pm4_loja_id, registro.canal_codigo);
+    const dadosMigrados = await Servicos.Plug4market.migracaoBaixarPlanilha(
+      registro.empresa_id,
+      id,
+      registro.pm4_loja_id,
+      registro.canal_codigo,
+      registro.pm4_seller_id || undefined,
+    );
 
     const inserido = await Repositorios.Plug4Market.inserirProdutosMigracao(dadosMigrados.dados || []);
     if (!inserido) {

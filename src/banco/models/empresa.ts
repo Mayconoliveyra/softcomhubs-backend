@@ -15,6 +15,7 @@ export interface IEmpresa {
   sinc_preco_tipo: 'PADRAO' | 'A' | 'B' | 'C';
 
   pm4_loja_id?: string | null; //ID da Loja no Marketplace (app.plug4market)
+  pm4_seller_id_ml?: string | null; //Id da loja no Mercado Livre
   pm4_token?: string | null;
   pm4_token_renovacao?: string | null;
   pm4_token_exp: number;

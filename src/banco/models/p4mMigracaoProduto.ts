@@ -1,7 +1,8 @@
 export interface IP4mMigracaoProduto {
   id: number;
-
   solicitacao_id: number;
+
+  empresa_id: number;
   feedback: string | null;
   sku: number | null;
   produto_id_canal: string | null;

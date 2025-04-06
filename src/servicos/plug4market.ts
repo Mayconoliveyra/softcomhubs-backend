@@ -249,6 +249,7 @@ const gerarPlanilhaMigracaoBuffer = (dados: ILinhaMigracao[]) => {
 };
 
 const formatarLinhaExcel = (linha: Record<string, any>): IValidacaoProdutoP4M => ({
+  empresa_id: linha.empresa_id,
   solicitacao_id: linha.solicitacao_id,
   feedback: Util.Texto.truncarTexto(Util.Texto.tratarComoString(linha['FEEDBACK']), 255) || null,
   sku: Util.Texto.tratarComoNumero(linha['SKU']) || null,
@@ -556,7 +557,7 @@ const migracaoConsultarStatus = async (empresaId: number, storeId: string, canal
   }
 };
 
-const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: number) => {
+const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: number, sellerId?: string) => {
   try {
     const url = `${URL_BASE_VTRINA}/migration/validation`;
 
@@ -568,7 +569,9 @@ const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: nu
       userId: P4M_USER_ID,
       userToken: P4M_USER_TOKEN,
       label: 'Obter Produtos',
+      ...(sellerId && { sellerId: sellerId }),
     };
+
     const response = await axios.post(url, body, {
       headers: {
         'Content-Type': 'application/json',
@@ -605,9 +608,11 @@ const migracaoSolicitar = async (empresaId: number, storeId: string, canalId: nu
   }
 };
 
-const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, storeId: string, canalId: number) => {
+const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, storeId: string, canalId: number, sellerId?: string) => {
+  const sellerIdDefinido = sellerId ? `&sellerId=${sellerId}` : '';
+
   try {
-    const url = `${URL_BASE_VTRINA}/migration/validation/export?storeId=${storeId}&marketplace=${canalId}`;
+    const url = `${URL_BASE_VTRINA}/migration/validation/export?storeId=${storeId}&marketplace=${canalId}${sellerIdDefinido}&userToken=${P4M_USER_TOKEN}`;
 
     const response = await axios.get<ArrayBuffer>(url, {
       responseType: 'arraybuffer',
@@ -620,7 +625,7 @@ const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, 
     const primeiraAba = workbook.SheetNames[0];
     const linhas = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
     const dadosFormatados: IValidacaoProdutoP4M[] = (linhas as Record<string, any>[]).map((linha) =>
-      formatarLinhaExcel({ ...linha, solicitacao_id: solicitacaoId }),
+      formatarLinhaExcel({ ...linha, solicitacao_id: solicitacaoId, empresa_id: empresaId }),
     );
 
     return {
@@ -640,7 +645,7 @@ const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, 
   }
 };
 
-const migracaoValidar = async (empresaId: number, storeId: string, canalId: number, dados: ILinhaMigracao[]) => {
+const migracaoValidar = async (empresaId: number, storeId: string, canalId: number, dados: ILinhaMigracao[], sellerId?: string) => {
   try {
     const url = `${URL_BASE_VTRINA}/migration/validation/updated?storeId=${storeId}`;
 
@@ -653,6 +658,7 @@ const migracaoValidar = async (empresaId: number, storeId: string, canalId: numb
     formData.append('userToken', P4M_USER_TOKEN);
     formData.append('marketplace', canalId.toString());
     formData.append('storeId', storeId);
+    if (sellerId) formData.append('sellerId', sellerId);
     formData.append('file', buffer, {
       filename,
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -697,7 +703,7 @@ const migracaoValidar = async (empresaId: number, storeId: string, canalId: numb
   }
 };
 
-const migracaoMigrar = async (empresaId: number, storeId: string, canalId: number, dados: ILinhaMigracao[]) => {
+const migracaoMigrar = async (empresaId: number, storeId: string, canalId: number, dados: ILinhaMigracao[], sellerId?: string) => {
   try {
     const url = `${URL_BASE_VTRINA}/migration/migration`;
 
@@ -710,6 +716,7 @@ const migracaoMigrar = async (empresaId: number, storeId: string, canalId: numbe
     formData.append('userToken', P4M_USER_TOKEN);
     formData.append('marketplace', canalId.toString());
     formData.append('storeId', storeId);
+    if (sellerId) formData.append('sellerId', sellerId);
     formData.append('file', buffer, {
       filename,
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
