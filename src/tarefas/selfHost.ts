@@ -150,7 +150,7 @@ const sincronizarProdutos = () => {
 
                     await trx(ETableNames.produtos)
                       .insert(lote) // 🔹 Insere lote por lote
-                      .onConflict(['sh_produto_id', 'sh_sku', 'empresa_id']) // 🔹 Atualiza se já existir
+                      .onConflict(['sh_sku', 'empresa_id']) // 🔹 Atualiza se já existir
                       .merge({
                         sh_nome: Knex.raw('VALUES(sh_nome)'),
                         sh_preco: Knex.raw('VALUES(sh_preco)'),
