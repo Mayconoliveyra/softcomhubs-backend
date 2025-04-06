@@ -16,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(ETableNames.p4m_migracao_solicitacao)
         .onUpdate('RESTRICT')
         .onDelete('RESTRICT');
-      table.bigInteger('empresa_id').nullable().unsigned();
+      table.bigInteger('empresa_id').unsigned().notNullable().references('id').inTable(ETableNames.empresas).onUpdate('RESTRICT').onDelete('RESTRICT');
 
       table.text('feedback').nullable();
       table.bigInteger('sku').nullable();

@@ -32,10 +32,10 @@ const verificarSolicitacaoProcessamento = async (empresaId: number, canalId: num
 };
 const obterSolicitacaoPorId = async (
   solicitacaoId: number,
-): Promise<(IP4mMigracaoSolicitacao & { pm4_loja_id: string; pm4_seller_id?: string | null }) | undefined> => {
+): Promise<(IP4mMigracaoSolicitacao & { pm4_loja_id: string; pm4_seller_id_ml?: string }) | undefined> => {
   try {
     return await Knex(ETableNames.p4m_migracao_solicitacao)
-      .select(`${ETableNames.p4m_migracao_solicitacao}.*`, `${ETableNames.empresas}.pm4_loja_id`, `${ETableNames.empresas}.pm4_seller_id`)
+      .select(`${ETableNames.p4m_migracao_solicitacao}.*`, `${ETableNames.empresas}.pm4_loja_id`, `${ETableNames.empresas}.pm4_seller_id_ml`)
       .innerJoin(ETableNames.empresas, `${ETableNames.empresas}.id`, `${ETableNames.p4m_migracao_solicitacao}.empresa_id`)
       .where(`${ETableNames.p4m_migracao_solicitacao}.id`, '=', solicitacaoId)
       .first();
@@ -67,17 +67,20 @@ const inserirProdutosMigracao = async (dados: IValidacaoProdutoP4M[]) => {
   }
 };
 
-/* const buscarSkusExistentes = async (empresaId: number, skus: number[]): Promise<string[]> => {
+const buscarSkusExistentes = async (empresaId: number, skus: number[]): Promise<number[]> => {
   try {
-    const resultados = await Knex(ETableNames.produtos).select('p4m_sku').whereIn('p4m_sku', skus).andWhere('empresa_id', '=', empresaId);
+    const resultados = await Knex(ETableNames.produtos)
+      .select('p4m_sku')
+      .whereIn('p4m_sku', skus)
+      .andWhere('empresa_id', '=', empresaId)
+      .whereNotNull('p4m_sku');
 
-    return resultados.map((r) => r.p4m_sku);
+    return resultados.map((r) => Number(r.p4m_sku)).filter((sku): sku is number => typeof sku === 'number' && !isNaN(sku));
   } catch (error) {
     Util.Log.error('[P4M] | Erro ao buscar SKUs existentes', error);
     return [];
   }
 };
- */
 
 export const Plug4Market = {
   criarSolicitacao,
@@ -85,4 +88,5 @@ export const Plug4Market = {
   obterSolicitacaoPorId,
   atualizarPorId,
   inserirProdutosMigracao,
+  buscarSkusExistentes,
 };

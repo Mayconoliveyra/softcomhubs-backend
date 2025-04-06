@@ -164,7 +164,7 @@ const consultarStatusMigracao = async (req: Request<{ id: string }>, res: Respon
       id,
       registro.pm4_loja_id,
       registro.canal_codigo,
-      registro.pm4_seller_id || undefined,
+      registro.pm4_seller_id_ml,
     );
 
     const inserido = await Repositorios.Plug4Market.inserirProdutosMigracao(dadosMigrados.dados || []);

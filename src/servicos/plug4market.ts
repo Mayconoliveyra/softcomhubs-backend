@@ -6,6 +6,8 @@ import { IItemPedido } from '../banco/models/ItemPedido';
 import { IP4mMigracaoProduto } from '../banco/models/p4mMigracaoProduto';
 import { IPedido } from '../banco/models/pedido';
 
+import { Repositorios } from '../repositorios';
+
 import { IProdutoSinc } from '../tarefas/plug4market';
 
 import { Util } from '../util';
@@ -627,6 +629,19 @@ const migracaoBaixarPlanilha = async (empresaId: number, solicitacaoId: number, 
     const dadosFormatados: IValidacaoProdutoP4M[] = (linhas as Record<string, any>[]).map((linha) =>
       formatarLinhaExcel({ ...linha, solicitacao_id: solicitacaoId, empresa_id: empresaId }),
     );
+
+    // 2. Extrai os SKUs válidos da lista formatada
+    const todosSkus: number[] = dadosFormatados.map((dado) => dado.sku).filter((sku): sku is number => typeof sku === 'number' && !isNaN(sku));
+
+    // 3. Busca os SKUs existentes de uma vez no banco
+    const skusExistentes = await Repositorios.Plug4Market.buscarSkusExistentes(empresaId, todosSkus);
+
+    // 4. Ajusta os SKUs inexistentes
+    dadosFormatados.forEach((dado) => {
+      if (dado.sku && !skusExistentes.includes(dado.sku)) {
+        dado.sku = null;
+      }
+    });
 
     return {
       sucesso: true,
