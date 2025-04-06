@@ -13,6 +13,7 @@ export async function up(knex: Knex) {
       table.string('cnpj', 50).nullable();
       table.string('nome', 100).unique().notNullable();
       table.boolean('canal_p4m').defaultTo(false);
+      table.string('icone', 120).nullable();
       table.boolean('desativado').defaultTo(false);
 
       table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());

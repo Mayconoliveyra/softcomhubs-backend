@@ -1,4 +1,5 @@
 import { IEmpresa } from '../../models/empresa';
+import { IEmpresaCanal } from '../../models/empresaCanal';
 import { IItemPedido } from '../../models/ItemPedido';
 import { IP4mCanalVenda } from '../../models/p4mCanalVenda';
 import { IP4mMigracaoProduto } from '../../models/p4mMigracaoProduto';
@@ -17,5 +18,6 @@ declare module 'knex/types/tables' {
     p4m_canais_vendas: IP4mCanalVenda;
     p4m_migracao_produtos: IP4mMigracaoProduto;
     p4m_migracao_solicitacao: IP4mMigracaoSolicitacao;
+    empresa_canais: IEmpresaCanal;
   }
 }

@@ -11,4 +11,5 @@ export enum ETableNames {
   p4m_canais_vendas = 'p4m_canais_vendas',
   p4m_migracao_produtos = 'p4m_migracao_produtos',
   p4m_migracao_solicitacao = 'p4m_migracao_solicitacao',
+  empresa_canais = 'empresa_canais',
 }
